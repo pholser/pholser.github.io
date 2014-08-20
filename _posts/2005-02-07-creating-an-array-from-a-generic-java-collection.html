@@ -1,0 +1,79 @@
+---
+layout: post
+title: Creating an array from a generic Java collection
+published: 1
+category:
+  - Programming
+---
+<p>Whilst working on <a href="http://sf.net/projects/jaggregate">Jaggregate</a>, I ran into some surprises involving Java generics (shocking, no?).&nbsp; Today's subject: turning a generic collection into an array.</p>
+
+<p>The uppermost interface in Jaggregate's type hierarchy is Collection&lt;E&gt;.&nbsp; We might wish to ask such a collection for an array of its elements.&nbsp; If we don't really want to do anything with specific elements, we can simply define a toArray() method which answers an object of type Object[]:</p>
+
+<p>interface Collection&lt;E&gt; {<br />&nbsp; &nbsp; Object[] toArray();<br />}</p>
+
+<p>If you do want to manipulate the elements, you really want something like:</p>
+
+<p>interface Collection&lt;E&gt; {<br />
+&nbsp; &nbsp; E[] toArray();<br />
+}</p>
+
+<p>This method would need to create an array of the appropriate component type, populate the array, and return it.&nbsp; However, at runtime, the information about the type of E is no longer around; it gets discarded (erased) during compilation.&nbsp; Thus an invocation such as:</p>
+
+<p>Collection&lt;String&gt; names;<br />String[] namesAsArray = names.toArray();</p>
+
+<p>would raise a ClassCastException -- the best the runtime can do is create an Object[], which is-not-a String[], even if you try to cast the created array to E[] internally.</p>
+
+<p>Fortunately, we can get around this problem by making the caller tell us what she wants the component type of the result to be:</p>
+
+<p>interface Collection&lt;E&gt; {<br />
+
+&nbsp; &nbsp; Object[] toArray( Class&lt;? super E&gt; componentType );<br />
+
+}</p>
+
+<p>Now, the client can hand us a Class object that represents E or any one of its ancestors, and the runtime can create an array of the appropriate component type via java.lang.reflect.Array.newInstance(componentType,size()).&nbsp; But wait, the return type of toArray() is still Object[].&nbsp; The client has to downcast to, say, String[], but at least it will be a safe cast.</p>
+
+<p>Can we do better?&nbsp; We want the return type to be some array type where the array's component type is a specified ancestor of E.&nbsp; Maybe making toArray() a generic method will help?</p>
+
+<p>interface Collection&lt;E&gt; {<br />
+
+
+&nbsp; &nbsp; &lt;T&gt; T[] toArray( Class&lt;T super E&gt; componentType );<br />
+
+
+}</p>
+
+<p>Doesn't compile.</p>
+
+<p>interface Collection&lt;E&gt; {<br />
+
+
+
+&nbsp; &nbsp; &lt;T,E extends T&gt; T[] toArray( Class&lt;T&gt; componentType );<br />
+
+
+
+}</p>
+
+<p>Doesn't compile either.</p>
+
+<p>interface Collection&lt;E&gt; {<br />
+
+
+
+
+&nbsp; &nbsp; &lt;T super E&gt; T[] toArray( Class&lt;T&gt; componentType );<br />
+
+
+
+
+}</p>
+
+<p>Nope.&nbsp; Bummer!</p>
+
+<p>I resorted to a utility method:</p>
+
+<p>class Collections {<br />&nbsp; &nbsp; public static &lt;T,E extends T&gt; T[] toArray(<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; final Collection&lt;E&gt; collection,<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; final Class&lt;T&gt; componentType ) {<br />&nbsp; &nbsp; }<br />}</p>
+
+<p>Does anyone have a better idea?&nbsp; Note that I'm not interested in having the client create the array to populate and pass it to toArray(), as java.util.Collection requires.</p>
+

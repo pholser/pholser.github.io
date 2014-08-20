@@ -1,0 +1,12 @@
+---
+layout: post
+title: You Choose To Mock Me...
+published: 1
+category:
+  - Programming
+---
+<p>Amongst the gaggle of mock object frameworks for Java, I had come to prefer <a href="http://www.easymock.org">EasyMock</a> over <a href="http://www.mockobjects.com">Mock Objects</a>, as it's rather minimal (no pre-generated mocks for J2EE interfaces), and has the extra "cool factor" of generating mocks at runtime via Java's dynamic proxy mechanism (java.lang.reflect.Proxy).  But, the syntax for training EasyMocks gets cumbersome with separate steps for saying a mock is to be invoked with such-and-such parms, and saying what should happen as a result (mockControl.setReturnValue(...), and others).  Also, the fact that invoking a method on the mock means different things depending on whether you've told the mock to "replay" can be confusing to beginners.</p>
+
+<p>I'm pleased to see that the "<a href="http://www.mockobjects.com/wiki/DynaMock">dynamic mock</a>" capability of MockObjects is being split out on its own.  JMock makes mock training quite a bit simpler, and allows for much flexibility in parameter matching with some sweet syntactic sugar.<br />
+</p>
+

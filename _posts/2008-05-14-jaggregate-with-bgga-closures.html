@@ -1,0 +1,31 @@
+---
+layout: post
+title: Jaggregate with BGGA closures
+published: 1
+category:
+  - Programming
+---
+<p>The latest snapshots of <a href="http://jaggregate.sourceforge.net">Jaggregate</a> seem to work well with <a href="http://javac.info">BGGA closures</a> converted to functors and predicates. I had to extract one-method interfaces from the abstract *Function and *Predicate classes (the interfaces are &quot;*Functor&quot; and &quot;*Condition&quot;) -- they basically correspond to the single abstract evaluate() and matches() methods -- and to change method signatures to accept the interface types rather than the abstract class types. This was to allow closure conversion to occur -- if the parameters remained of types corresponding to abstract classes, the conversions would be rejected.</p>
+
+<p>The one tweak needed was that initially, the BGGA prototype (dated Apr 27 2008) was rejecting calls such as:</p>
+
+<pre><code>
+&nbsp; &nbsp; Interval.fromTo(1, 4).forEachDo(System.out#println(int));
+</code></pre>
+
+<p>where the closure (here, a method reference) passed as a UnaryFunctor had return type <code>void</code>, and the signature of <code>forEachDo()</code> was:</p>
+
+<pre><code>
+    void forEachDo(UnaryFunctor&lt;? super Integer, ?&gt;);
+</code></pre>
+
+<p>If I changed the signature to:</p>
+
+<pre><code>
+    &lt;R&gt; void forEachDo(UnaryFunctor&lt;? super Integer, ? extends R&gt;);
+</code></pre>
+
+<p>things were fine, but I wasn't sure why the change would be necessary.</p>
+
+<p>I mailed <a href="http://gafter.blogspot.com">Neal Gafter</a> about this, and seemingly within hours he'd fixed the issue and released a new cut of the prototype (dated May 11 2008). Many thanks to Neal for the quick turnaround and for fighting through my silly questions. :)</p>
+

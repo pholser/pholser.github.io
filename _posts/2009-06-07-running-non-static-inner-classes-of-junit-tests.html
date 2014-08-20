@@ -1,0 +1,233 @@
+---
+layout: post
+title: Running non-static inner classes of JUnit tests
+published: 1
+category:
+  - Programming
+---
+<p><a href="http://junit.org">JUnit</a> ships with an "experimental" custom runner called <code>Enclosed</code>. When you annotate a test class as <code>@<a href="http://junit.org/junit/javadoc/4.5/org/junit/runner/RunWith.html">RunWith</a>(Enclosed.class)</code>, it builds a test suite consisting not just of tests from the annotated class, but of every nested inner class of the annotated class. A handy way, perhaps, of running tests that are nested classes of a test class that groups tests of related test subjects or functionality, in the eventuality that one's <a href="http://ant.apache.org">Ant</a> script might not be set up to pick up nested classes.</p>
+
+<p>What if the nested class weren't <code>static</code>? Would there ever be a legitimate reason to set up a test class as a non-<code>static</code> inner class of another test class? How could we run them? I recently found a legitimate reason, and built a way to run them.</p>
+
+<p>In the forthcoming <a href="http://infinitest.org">Infinitest</a> Continuous Testing Toolkit, I put together some abstract test classes that allow a developer to ensure that methods which return collections that may be fields of the receiving class are <a href="http://java.sun.com/javase/6/docs/api/java/util/Collections.html#unmodifiableCollection(java.util.Collection)">unmodifiable</a>. Here are their essentials:</p>
+
+<pre><code>public abstract class UnmodifiableCollectionTestSupport&lt;T&gt; {
+    protected Collection&lt;T&gt; items;
+    private T containedItem;
+
+    @Before public final void initializeHarness() {
+        this.items = newCollection();
+        this.containedItem = containedItem();
+
+        assertFalse("need a non-empty collection", items.isEmpty());
+        assertTrue("need an item that is in the collection", items.contains(containedItem));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public final void shouldPreventAdd() {
+        items.add(newItem());
+    }
+
+    // more tests, via collection and iterator methods...
+
+    protected abstract Collection&lt;T&gt; newCollection();
+    protected abstract T newItem();
+    protected abstract T containedItem();
+}
+
+public abstract class UnmodifiableListTestSupport&lt;T&gt; extends UnmodifiableCollectionTestSupport&lt;T&gt; {
+    @Test(expected = UnsupportedOperationException.class)<br>
+    public final void shouldPreventAddAtIndex() {
+        list().add(0, newItem());
+    }
+
+    // more tests, via list and list iterator methods...
+
+    @Override protected final Collection&lt;T&gt; newCollection() {
+        return newList();<br>&nbsp;&nbsp;&nbsp;
+    }
+
+    protected abstract List&lt;T&gt; newList();
+
+    private List&lt;T&gt; list() {
+        return (List&lt;T&gt;) items;
+    }
+}
+
+public abstract class UnmodifiableMapTestSupport&lt;K, V&gt; {
+    private Map&lt;K, V&gt; entries;
+    private K containedKey;
+    private V containedValue;
+
+    @Before public final void initializeHarness() {
+        this.entries = newMap();
+        this.containedKey = containedKey();
+        this.containedValue = containedValue();
+
+        assertFalse("need a non-empty map", entries.isEmpty());
+        assertTrue("need a key that is in the map", entries.containsKey(containedKey));
+        assertTrue("need a value that is in the map", entries.containsValue(containedValue));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public final void shouldPreventPut() {
+        entries.put(newKey(), null);
+    }
+
+    // more tests via map methods...
+
+    protected abstract Map&lt;K, V&gt; newMap();
+    protected abstract K newKey();
+    protected abstract K containedKey();
+    protected abstract V containedValue();
+}</code></pre>
+
+<p>And a example of a concrete test:<p/>
+
+<pre><code>public class UnmodifiableMapTest extends UnmodifiableMapTestSupport&lt;String, String&gt; {
+    @Override protected String containedKey() {
+        return "foo";
+    }
+
+    @Override protected String containedValue() {
+        return "value";
+    }
+
+    @Override protected String newKey() {
+        return "bar";
+    }
+
+    @Override protected Map&lt;String, String&gt; newMap() {
+        return unmodifiableMap(singletonMap("foo", "value"));
+    }
+}</code></pre>
+
+<p>This is a good start. However, not just do we want to ensure a map's unmodifiability via its own methods, but also via the methods on its <a href="http://java.sun.com/javase/6/docs/api/java/util/Map.html#keySet()">keySet()</a>, <a href="http://java.sun.com/javase/6/docs/api/java/util/Map.html#values()">values()</a>, and <a href="http://java.sun.com/javase/6/docs/api/java/util/Map.html#entrySet()">entrySet()</a> views. (Did you know that you can modify a map via these views? I didn't.) It would seem natural, then, to leverage the <code>UnmodifiableCollectionTestSupport</code> class for this purpose, feeding different instances of it an <code>keySet()</code>, <code>values()</code>, and <code>keySet()</code> view in turn. But I did not want a developer to have to remember to do this. I thought it would be nice if a subclasser of <code>UnmodifiableMapTestSupport</code> would get all four test classes run without any additional effort.</p>
+
+<p>I decided to give <code>UnmodifiableMapTestSupport</code> three non-static inner test classes, like so:</p>
+
+<pre><code>public abstract class UnmodifiableMapTestSupport&lt;K, V&gt; {
+    private Map&lt;K, V&gt; entries;
+    private K containedKey;
+    private V containedValue;
+
+    @Before public final void initializeHarness() {
+        this.entries = newMap();
+        this.containedKey = containedKey();
+        this.containedValue = containedValue();
+
+        assertFalse("need a non-empty map", entries.isEmpty());
+        assertTrue("need a key that is in the map", entries.containsKey(containedKey));
+        assertTrue("need a value that is in the map", entries.containsValue(containedValue));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public final void shouldPreventPut() {
+        entries.put(newKey(), null);
+    }
+
+    // more tests via map methods...
+
+    protected abstract Map&lt;K, V&gt; newMap();
+    protected abstract K newKey();
+    protected abstract K containedKey();
+    protected abstract V containedValue();
+
+    class KeySetTest extends UnmodifiableCollectionTestSupport&lt;K&gt; {
+        @Override protected K containedItem() {
+            return containedKey;
+        }
+
+        @Override protected Collection&lt;K&gt; newCollection() {
+            return entries.keySet();
+        }
+
+        @Override protected K newItem() {
+            return newKey();
+        }
+    }
+
+    class ValuesTest extends UnmodifiableCollectionTestSupport&lt;V&gt; {
+        @Override protected V containedItem() {
+            return containedValue;
+        }
+
+        @Override protected Collection&lt;V&gt; newCollection() {
+            return entries.values();
+        }
+
+        @Override protected V newItem() {
+            return null;
+        }
+    }
+
+    class EntrySetTest extends UnmodifiableCollectionTestSupport&lt;Map.Entry&lt;K, V&gt;&gt; {
+        @Override protected Entry&lt;K, V&gt; containedItem() {
+            return new Map.Entry&lt;K, V&gt;() {
+                public K getKey() {
+                    return containedKey;
+                }
+
+                public V getValue() {
+                    return containedValue;
+                }
+
+                public V setValue(V value) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override public boolean equals(Object that) {
+                    if (!(that instanceof Map.Entry&lt;?, ?&gt;))
+                        return false;
+
+                    Map.Entry&lt;?, ?&gt; other = (Map.Entry&lt;?, ?&gt;) that;
+                    return ObjectUtils.equals(getKey(), other.getKey())
+                        &amp;&amp; ObjectUtils.equals(getValue(), other.getValue());
+                }
+
+                @Override public int hashCode() {
+                    return ObjectUtils.hashCode(getKey()) ^ ObjectUtils.hashCode(getValue());
+                }
+
+                @Override public String toString() {
+                    return getKey() + " -&gt; " + getValue();
+                }
+            };
+        }
+
+        @Override protected Collection&lt;Entry&lt;K, V&gt;&gt; newCollection() {
+            return entries.entrySet();
+        }
+
+        @Override protected Entry&lt;K, V&gt; newItem() {
+            return null;
+        }
+    }
+}</code></pre>
+
+<p>This gives the enclosed instances, however they might be created, visibility to the enclosing class's fixture.</p>
+
+<p>Now, we have to figure out how to run all these tests. I created a custom JUnit runner, <code>EnclosedInners</code>, and marked <code>UnmodifiableMapTestSupport</code> as <code>@RunWith(EnclosedInners.class)</code>. <code>EnclosedInners</code> is a <code><a href="http://junit.org/junit/javadoc/4.5/org/junit/runners/ParentRunner.html">ParentRunner</a>&lt;<a href="http://junit.org/junit/javadoc/4.5/org/junit/runner/Runner.html">Runner</a>&gt;</code> just as the <a href="http://junit.org/junit/javadoc/4.5/org/junit/runners/Suite.html">Suite</a> runner is. It builds up a runner for the concrete subclass of <code>UnmodifiableMapTestSupport</code> as normal (modulo checking for <code>@RunWith</code>), and also makes runners for each of the enclosed inner classes of the same (all the way up the inheritance hierarchy of the concrete class). If the inner class is <code>static</code>, it builds a normal <code>Runner</code> for that class. If the inner class is not <code>static</code>, it builds a runner which, when it is time to run a test method:
+<ol>
+  <li>instantiates the enclosing class</li>
+  <li>instantiates the enclosed class, passing its constructor the enclosing instance (inner classes get a synthetic constructor with a parameter representing the enclosing instance)</li>
+  <li>runs any <a href="http://junit.org/junit/javadoc/4.5/org/junit/Before.html">@Before</a> methods for the enclosing instance. It is important to do this so that the enclosed instance will be able to access fully initializes fixture fields from the enclosing instance.</li>
+  <li>runs any <code>@Before</code> methods for the enclosed instance</li>
+  <li>runs the test method</li>
+  <li>runs any <a href="http://junit.org/junit/javadoc/4.5/org/junit/After.html">@After</a> methods for the enclosed instance</li>
+  <li>runs any <code>@After</code> methods for the enclosing instance</li>
+</ol>
+</p>
+
+<p>Worked like a charm!</p>
+
+<p>Some gotchas I tripped over:
+<ol>
+  <li>Reflectively finding the inner class constructor based on the runtime type of the enclosing instance wasn't doable by mere <a href="http://commons.apache.org/beanutils/">Commons Beanutils</a> checking (since the type of the constructor parm is that runtime type's superclass). I had to bring in my <a href="http://www.pholser.com/software/reflective-method-lookup.zip">reflective method lookup mojo</a> to be able to find a signature that was compatible with the actual parm.</li>
+  <li>I purposely made the inner classes non-<code>public</code> -- so in order to get their constructors invoked reflectively, I had to use <a href="http://java.sun.com/javase/6/docs/api/java/lang/reflect/AccessibleObject.html#setAccessible(boolean)">setAccessible(true)</a>.</li>
+  <li>Note that JUnit wants the declaring classes of @Before, @After, <a href="http://junit.org/junit/javadoc/4.5/org/junit/Test.html">@Test</a>, etc. methods to be <code>public</code>. No problem for our inner classes -- those methods actually live on their superclass, <code>UnmodifiableCollectionTestSupport</code>, which is <code>public</code>.
+</ol></p>
+
+<p>Creating a custom JUnit test runner was easier than I had anticipated, and it was a pleasure to work with the extension points it offered.</p>
+
+

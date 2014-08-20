@@ -1,0 +1,13 @@
+---
+layout: post
+title: Decision diagrams for Java exception handling
+published: 1
+category:
+  - Programming
+---
+<p>Nice article <a href="http://www.jiffle.net/development/Exceptions.html">here</a>.</p>
+
+<p>Interestingly enough, when doing my <a href="http://home.comcast.net/~pholser/software/pholser-getopts.zip">getopts TDD experiment</a>, I decided to make OptionException -- the superclass of all exceptions raised by the library -- a RuntimeException rather than a checked exception.  The rationale?  You're probably using the getopts functionality up in a main() or nearby routine, and probably have a top-level handler to trap unforeseen issues...so why pollute the library's method signatures with a checked exception that surely will either 1) be handled at that top level as big-E Exception, or 2) not be handled as such, and the exception's message/toString() will be useful enough for the user to figure out what happened?</p>
+
+<p>Most developers, I think, would knee-jerk and make OptionException checked.  I did, but then turned my thinking around.  What do you think?</p>
+

@@ -1,0 +1,40 @@
+---
+layout: post
+title: Reflective method lookup, almost ten years on
+published: 1
+category:
+  - Programming
+---
+<p>Nearly ten years ago, I wrote an <a href="http://adtmag.com/articles/2001/07/24/limitations-of-reflective-method-lookup.aspx">article</a> exploring how to find a method on a Java class using reflection, given the class's name, the method name, and an array of arguments, whose parameter types would be most compatible with the runtime types of the actual arguments. This might be handy for, say, simple scripting languages sitting atop Java.</p>
+
+<p>I sure wish someone would have told me about <a href="http://java.sun.com/javase/6/docs/api/java/beans/Expression.html">java.beans.Expression</a> and <a href="http://java.sun.com/javase/6/docs/api/java/beans/Statement.html">java.beans.Statement</a> when JDK 1.4 came out (2002?). Looks like it handles the exact kind of method/constructor lookup I wrote about. Plus, its ambiguity resolution is almost certainly more <a href="http://java.sun.com/docs/books/jls/">JLS</a>-accurate.</p>
+
+<p>The Expression/Statement facility doesn't seem to support primitive widening conversions:</p>
+
+<p><pre><code>import java.beans.Expression;
+
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+public class BeansExpressionTest {
+    public static class Foo {
+        public String bar(int i) {
+            return "int";
+        }
+
+        public String bar(byte b) {
+            return "byte";
+        }
+    }
+
+    @Test
+    public void shouldWidenPrimitives() throws Exception {
+        Expression expr = new Expression(new Foo(), "bar",
+            new Object[] { Short.valueOf("3") });
+
+        assertEquals("int", expr.getValue());
+    }
+}</code></pre></p>
+
+<p><code>shouldWidenPrimitives()</code> raises <code>NoSuchMethodException</code>. Oversight on Sun's part? Misunderstanding on my part regarding how such a call should be resolved? If I already have a handle on <code>Foo#bar(int)</code>, the reflective call would widen a <code>Short</code> argument.</p>
+

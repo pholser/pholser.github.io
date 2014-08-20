@@ -1,0 +1,18 @@
+---
+layout: post
+title: Stuff I hope you never have to know about Java, Vol. 1, No. 1
+published: 1
+category:
+  - Programming
+---
+<p><pre><code>import java.lang.reflect.Modifier;
+
+public interface X {
+    interface Y { /* ... */ }
+}
+
+interactive> Modifier.isPublic(X.Y.class.getModifiers())
+true</code></pre></p>
+
+Y is implicitly public, apparently -- just like methods and fields on X would be.
+

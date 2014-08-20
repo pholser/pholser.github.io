@@ -1,0 +1,9 @@
+---
+layout: post
+title: Writing an Ant task for Jumble mutation tester
+published: 1
+category:
+  - Programming
+---
+<p><a href="http://jumble.sourceforge.net">Jumble</a> is a pretty neat tool for doing mutation testing on your Java code, to see how effective your <a href="http://www.junit.org">JUnit</a> tests are at catching small changes to the test subjects. It works by mutating bytecode rather than source (a la <a href="http://jester.sourceforge.net">Jester</a>), and so is much faster to execute. However, I was sad to see that there is no accompanying <a href="http://ant.apache.org">Ant</a> task or <a href="http://maven.apache.org">Maven</a> plugin. Running Jumble in either of these tools could certainly be accomplished by simply cooking up a Java VM invocation with the appropriate command line arguments...but I think it&#39;d be useful to have tasks/plugins that, among other things, fail the build if a class&#39;s Jumble score dips below a defined threshold. Many code coverage tools (e.g. <a href="http://cobertura.sourceforge.net">Cobertura</a>) have such provisions in their Ant/Maven tasks/plugins.<br /><br />So, I&#39;m undertaking to write an Ant task for Jumble. Initially it will invoke the tool via its CLI and scrape the output for scores, but ultimately I&#39;d like to integrate the task more tightly with Jumble&#39;s API. Hopefully that API lends itself well to being hooked into.</p>
+

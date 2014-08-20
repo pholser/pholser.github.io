@@ -1,0 +1,80 @@
+---
+layout: post
+title: "Crash test dummies" for triggering IllegalAccessException
+published: 1
+category:
+  - Programming
+---
+<p>If you've ever written Java code that uses reflection, you've surely been confronted with what to do in case a reflected <code>Method</code> or <code>Constructor</code> raises an <code>IllegalAccessException</code> when <code>invoke()</code>d. How do you test your code's reaction to <code>IllegalAccessException</code>? Do you just say, "Bah, that'll never happen", and press on? Or do you find the gap in your test suite's code coverage gnawing at you until plugged?</p>
+
+<p>Recently, I found myself writing a JSP custom tag that took a bean in some scope, and wrote its readable properties out as HTML hidden fields. The tag's <code>doEndTag()</code> method located the bean, discovered its properties, and for each property got its value by reflectively invoking an accessor method. Such reflective invocation can raise the checked exceptions <code>InvocationTargetException</code> and <code>IllegalAccessException</code>. The tag code, in the presence of either exception, I decided, should wrap the exception in a <code>JspException</code> and raise the wrapper.</p>
+
+<p>Testing the handling of <code>InvocationTargetException</code> was no big deal: feed the tag a bean with a public property that raises some unchecked exception always. Testing the handling of <code>IllegalAccessException</code> was a little trickier. Here's what I did: make a bean in its own package, with a single property whose type is an interface, and whose property accessor returns an anonymous-inner-class implementation of said interface. Reflection can then discover the property on the interface, since it's public; but when invoked, at runtime the system will realize that the target class is an anonymous inner class, inaccessible to the outside world, and raise <code>IllegalAccessException</code>:</p>
+
+<pre>
+<code>
+
+package pholser.taglib;
+
+public class HiddenFieldsFromBeanTagTest extends TestCase {
+    private HiddenFieldsFromBeanTag tag;
+    private FakePageContext pageContext;
+
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        pageContext = new FakePageContext();
+        tag = new HiddenFieldsFromBeanTag();
+        tag.setPageContext( pageContext );
+    }
+
+    protected void tearDown() throws Exception {
+        try {
+            tag.release();
+        }
+        finally {
+            super.tearDown();
+        }
+    }
+
+    public void testAccessorAccessExceptionShouldTranslateToJspException()
+        throws Exception {
+
+        tag.setName( "sessionBean" );
+        tag.setScope( "session" );
+        pageContext.setAttribute( "sessionBean", Faker.getStringMaker(),
+            PageContext.SESSION_SCOPE );
+        assertEquals( Tag.SKIP_BODY, tag.doStartTag() );
+
+        try {
+            tag.doEndTag();
+            fail();
+        }
+        catch ( JspException expected ) {
+            assertEquals(
+                IllegalAccessException.class,
+                expected.getRootCause().getClass() );
+        }
+    }
+}
+
+
+package pholser.beans;
+
+public interface StringMaker {
+    String getString();
+}
+
+public class Faker {
+    public static StringMaker getStringMaker() {
+        return new StringMaker() {
+            public String getString() {
+                return "x";
+            }
+        };
+    }
+}
+</code>
+</pre>
+
+

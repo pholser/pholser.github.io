@@ -1,0 +1,105 @@
+---
+layout: post
+title: JavaOne 2008: more from Day 1
+published: 1
+category:
+  - Programming
+---
+<p>Some random thoughts from Day 1 of JavaOne 2008 (belated):</p>
+
+<p>Wi-Fi connections spotty at best.&nbsp; Kind of disappointing they couldn't handle the traffic they could have reasonably expected.</p>
+
+<p>&quot;JRuby: What, Why, How...Do It Now!&quot; -- Nice JRuby overview.&nbsp; An admonishment not to be scared to let go of static types -- nice.&nbsp; Interesting how Groovy lets you go either way, sticking with the manifest typing of Java or introducing latent types as you please.&nbsp; </p>
+
+<p>Demonstrated blocks for deferred invocation, and their uses in internal collection iteration and encapsulating transactional code -- important use cases for their potential inclusion (closures) in the Java core language.&nbsp; I wonder if such language features are better left to the other JVM-based languages that are sporting them already, rather than over-complicating what started out as a simple language.&nbsp; Josh Bloch speaks often of a &quot;complexity budget&quot; for a language, and that perhaps Java is overspent.</p>
+
+<p>Much of Rails code is created on startup.&nbsp; Interesting.&nbsp; Cool that Ruby allows you to define classes and methods at runtime, and to open up classes for such additions.&nbsp; Cooler still that in JRuby, core JDK classes become open (even those that are final).&nbsp; Apparently the term for opening up and tweaking core classes in this way is &quot;monkey patching&quot; -- derogatory term in the Python world, celebrated in the Ruby world.</p>
+
+<p>JRuby leverages native threading of the JVM for better performance, as opposed to the &quot;green threading&quot; of the MRI.&nbsp; There is a jirb analogue to irb in JRuby -- nice.</p>
+
+<p>&quot;require 'java'&quot; to use JDK classes in JRuby code.</p>
+
+<p>&quot;require 'irb/completion'&quot; in jirb to enable auto-completion in the console.&nbsp; Sweet.</p>
+
+<p>Java methods can be invoked in their regularCamelCaseWay or via_lower_case_underscored_names.</p>
+
+<p>Plenty of help for building Swing apps in JRuby -- Cheri::Swing, Profligacy, MonkeyBars</p>
+
+<p>&quot;More Effective Java&quot; -- New edition of Bloch's &quot;Effective Java&quot; is out -- covers new ground of generics, annotations, enums, concurrency libs, etc.</p>
+
+<p>Use wildcard types, bounded or otherwise, generally only as method parms, not as return types.</p>
+
+<p>'PECS' -- Producer extends, Consumer produces -- mnemonic for remembering when to use ? extends X versus ? super X.&nbsp; If a method is both a producer and consumer of X, no wildcards needed on the generic type.&nbsp; Users should not have to think about wildcards to use your API.</p>
+
+<p>Enums -- do not rely on ordinal() for business logic, if you need to use an integer distinguisher as a field for each enum, use a constructor with an integer parm.&nbsp; Don't depend on which ordinal() integer is assigned to each member of the enum.&nbsp; Good discussion of EnumSet and EnumMap.&nbsp; Bit fields are obsolete in Java.</p>
+
+<p>The power of readResolve() to enforce singularity of singleton Serializables has been oversold -- readResolve() works only if all fields of the Serializable are transient.</p>
+
+<p>Enums are inextensible, but can implement interfaces and each member of the enum can supply an implementation.</p>
+
+<p>Good discussion of various lazy-init techniques.</p>
+
+<p>Java 5 memory model enhancements apparently make double-check locking idiom work now.</p>
+
+<p>&quot;Upcoming Java Programming Language Features&quot; -- Alex Buckley, spec lead for JDK 7 JSR, speaks of stewarding the &quot;moral and technical integrity&quot; of Java.</p>
+
+<p>&quot;A good application is rich; a good language is pure.&quot; Gosling, about adding features to a language: &quot;Just say no, until threatened with bodily harm&quot;.&nbsp; Tougher to add language features due to the explosion of interaction between the features.&nbsp; In an app, features relatively rarely interact, and more is considered better.&nbsp; Not so with language features.&nbsp; With a language, fewer, more regular features are better.</p>
+
+<p>&quot;Respect the past&quot;: new keywords shouldn't break existing code (a la 'assert', 'enum').<br />&quot;Respect the future&quot;: allow room for syntax to breathe.&nbsp; Syntax/semantics of a feature should not conflict with those of existing or potential features (quite a tall order!)<br />&quot;Respect the model&quot;: every language reflects a model of computation.&nbsp; Java's model: general-purpose, class-based, OO, concurrent, civilized relationship to APIs, aligned with JVM.&nbsp; When evolving a language with features, have those features enable more regular and abstract programs.</p>
+
+<p>Principles that recognize the Java model:</p>
+
+<ul><li>Encourage high-level practices -- do the right thing<ul><li>A program's meaning is hidden by accidental complexity (Fred Brooks)</li></ul></li>
+
+<li>Covet clarity -- do the thing right<ul><li>A program is read far more often than written/modified</li>
+
+<li>Language abstractions are the primary enabler of clear code</li></ul></li>
+
+<li>Prefer static typing -- stay safe<ul><li>Proves absence of some bugs at compile time</li>
+
+<li>Most Java keywords are about static typing</li></ul></li>
+
+<li>Isolate the language from the APIs -- stay abstract<ul><li>A language is more widespread than its APIs</li>
+
+<li>APIs come and go, language remains</li>
+
+<li>Language compromised by linkage to a deprecated API.</li>
+
+<li>JLS used to define java.lang.</li></ul></li></ul>
+
+<p>Under consideration:</p>
+
+<ul><li>Disjunctive exception types in catch statements (yay!)</li>
+
+<li>Safe re-throw of exceptions in catch blocks when exception var is marked final</li>
+
+<li>First-class modularity support in the language and tooling</li>
+
+<li>JSR-308 using annotations to effectively introduce pluggable type systems into language -- for enforcing things like @NonNull, @Readonly, @Immutable, etc.</li></ul>
+
+<p>Not of interest:</p>
+
+<ul><li>User-defined operator overloading</li>
+
+<li>Multi-methods</li>
+
+<li>Macros</li>
+
+<li>Dynamic typing (latent typing)</li></ul>
+
+<p>&quot;GUI Testing Made Easy&quot; was a nice introduction to the FEST library by former ThoughtWorker Alex Ruiz.</p>
+
+<p>&quot;Practical Applications of Static Bytecode Analysis and Transformation for the Java Platform&quot; -- great demonstrations of tools that use libraries like ASM for tweaking bytecode in interesting ways:</p>
+
+<ul><li>Cobertura for instrumenting bytecode to be executed by tests, and measuring coverage of that code when tests are executed against it</li>
+
+<li>Google Singleton Detector</li>
+
+<li>Google Testability Explorer</li></ul>
+
+<p>&quot;Tips and Tricks for Using Language Features in API Design&quot; -- lots of material to cover in a very short time.&nbsp; I felt the speaker just ripped right through some topics that to me were non-obvious.&nbsp; Slow down!&nbsp; Interesting to learn a potential good use for wildcarded generic return types: return of an internal collection without having to copy it (callers won't be able to add/modify).</p>
+
+<p>Be wary of interface covariant returns -- great for concrete impl classes, but in branching interface hierarchy, watch out.</p>
+
+<p>If you're going to add an exception type, maybe make it carry more info other than just a new name?&nbsp; Cause?&nbsp; How to recover?&nbsp; Also, in libraries, do take care to add serialVersionUIDs to your exception classes -- Exceptions are Serializable.</p>
+

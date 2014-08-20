@@ -1,0 +1,23 @@
+---
+layout: post
+title: What's coming in Jaggregate 3.0
+published: 1
+category:
+  - Programming
+---
+<p>1. Concrete classes, where appropriate, will have static factory methods that leverage generic type inference. These will be named such that they read well when statically imported. So, for example, instead of:</p>
+
+<blockquote><p><code>Dictionary&lt;String, Integer&gt; lengths = new Dictionary&lt;String, Integer&gt;();</code></p></blockquote>
+
+<p>you can write:</p>
+
+<blockquote><p><code>Dictionary&lt;String, Integer&gt; lengths = emptyDictionary();</code></p></blockquote>
+
+<p>2. It'll introduce <dfn>intervals</dfn> -- read-only sequences that are arithmetic progressions. Simple example:</p>
+
+<blockquote><p><code>new Interval&lt;Integer&gt;( 1, 10 ).forEachDo( ... );</code></p></blockquote>
+
+<p>3. Documentation will have way more examples.</p>
+
+<p>Hopefully I can wrap all this up in a matter of weeks. In the meantime, here's the <a href="http://jaggregate.sf.net">current release of Jaggregate</a>.</p>
+

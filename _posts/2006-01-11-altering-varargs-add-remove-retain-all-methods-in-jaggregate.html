@@ -1,0 +1,56 @@
+---
+layout: post
+title: Altering "varargs" (add|remove|retain)All methods in Jaggregate
+published: 1
+category:
+  - Programming
+---
+<p>
+<a href="http://jaggregate.sourceforge.net">Jaggregate</a>, my Java-5-only <a href="http://whysmalltalk.org">Smalltalk</a>-ish collections library, has collections that support the Java collections' notions of <code>addAll()</code>, <code>removeAll()</code>, and <code>retainAll()</code>.  For usability's sake, there are three overloads of each:
+</p>
+<pre>
+    void addAll( jaggregate.Collection&lt;? extends E> others );
+    void addAll( E... others );
+    void addAll( java.lang.Iterable&lt;? extends E&gt; others );
+
+    boolean removeAll( jaggregate.Collection&lt;? extends E&gt; others );
+    boolean removeAll( E... others );
+    boolean removeAll( java.lang.Iterable&lt;? extends E&gt; others );
+
+    boolean retainAll( jaggregate.Collection&lt;? extends E&gt; others );
+    boolean retainAll( E... others );
+    boolean retainAll( java.lang.Iterable&lt;? extends E&gt; others );
+</pre>
+<p>
+The "varargs" forms allow specification of a real array argument, or of a variable-length argument list:
+</p>
+<pre>
+OrderedCollection&lt;Integer&gt; primes = new OrderedCollection&lt;Integer&gt;();
+primes.addAll( new Integer[] { 2, 3, 5, 7 } );
+primes.addAll( 11, 13, 17, 19 );
+</pre>
+<p>
+I made a mistake in the specification of the "varargs" overloads.  As written, they allow a zero-length argument list.  At best, <code>addAll()</code> just looks goofy: 
+</p>
+<pre>
+primes.addAll();  // add all what?  to where?
+</pre>
+<p>
+And <code>removeAll()</code> and <code>retainAll()</code> get downright confusing:
+</p>
+<pre>
+primes.removeAll();    // removes nothing
+primes.retainAll();    // removes everything
+</pre>
+<p>
+So, I decided to change the "varargs" overloads to:
+</p>
+<pre>
+    void addAll( E newElement, E... moreNewElements );
+    boolean removeAll( E oldElement, E... moreOldElements );
+    boolean retainAll( E keeper, E... moreKeepers );
+</pre>
+<p>
+Now, zero-arg calls to the <code>*All()</code> methods won't compile (hopefully there weren't any out there to begin with), and if you <em>really</em> mean to hand the methods zero args, you can still do so with an array type rather than a varargs list.
+</p>
+

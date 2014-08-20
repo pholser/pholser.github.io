@@ -1,0 +1,32 @@
+---
+layout: post
+title: An NUnit equivalent for JUnit's TestCase?
+published: 1
+category:
+  - Programming
+---
+<pre>using NUnit.Framework;
+namespace Pholser {
+  [TestFixture]
+  public abstract class AbstractTestFixture {
+    [TestFixtureSetUp]
+    protected virtual void FixtureTearDown() {
+    }
+    [SetUp]
+    protected virtual void SetUp() {
+    }
+    [TearDown]
+    protected virtual void TearDown() {
+    }
+    [TestFixtureTearDown]
+    protected virtual void FixtureTearDown() {
+    }
+  }
+}</pre>
+
+<p>The neat part is that since NUnit's attributes are inherited, the subclass doesn't have to be marked with [TestFixture], and if it overrides the fixture methods doesn't have to annotate the overrides (except, of course, with the <strong>override</strong> keyword...grrr...)</p>
+
+<p>I know it's cool that NUnit doesn't force you to extend a class in order to write tests, but in the interest of removing duplication in your test suite you may find yourself gravitating toward some sort of base fixture class.</p>
+
+<p>One point of interest: NUnit creates one instance of the [TestFixture] to be used by all the [Test] methods on it, unlike JUnit, which gives each testFoo() method its own fixture instance to run on.  Hopefully you're writing your tests in such a way that the distinction never matters...</p>
+

@@ -1,0 +1,217 @@
+---
+layout: post
+title: @SuppressWarnings and its applicability to various program elements
+published: 1
+category:
+  - Programming
+---
+<p>I cooked up a toy Java 5 class that generates warnings of the &quot;unchecked&quot; family when compiled:</p>
+<pre>
+package pholser.util;
+
+import java.util.Arrays;
+
+public class Stack&lt;T&gt; {
+    private final Object[] storage;
+    private int top;
+
+    public Stack() {
+        this.storage = new Object[ 5 ];
+    }
+
+    public Stack( final Stack&lt;T&gt; other ) {
+        this.storage = (Object[]) other.storage.clone();
+        this.top = other.top;
+        final T currentTop = (T) storage[ top ];
+    }
+
+    public void push( final T item ) {
+        checkPrecondition( isFull(), "can't push a full stack" );
+
+        storage[ top++ ] = item;
+    }
+
+    public T pop() {
+        checkPrecondition( isEmpty(), "can't pop an empty stack" );
+
+        return (T) storage[ --top ];
+    }
+
+    public T peek() {
+        checkPrecondition( isEmpty(), "can't peek an empty stack" );
+
+        return (T) storage[ --top ];
+    }
+
+    @Override
+    public boolean equals( final Object that ) {
+        if ( this == that )
+            return true;
+
+        if ( that == null || !getClass().equals( that.getClass() ) )
+            return false;
+
+        final Stack&lt;?&gt; other = (Stack&lt;?&gt;) that;
+        return top == other.top && Arrays.deepEquals( storage, other.storage );
+    }
+
+    @Override
+    public int hashCode() {
+        int hashValue = 17;
+        hashValue = 37 * hashValue + top;
+        hashValue = 37 * hashValue + Arrays.deepHashCode( storage );
+
+        return hashValue;
+    }
+
+    private void checkPrecondition( final boolean precondition, final String message ) {
+        if ( !precondition )
+            throw new IllegalStateException( message );
+    }
+
+    private boolean isEmpty() {
+        return top == 0;
+    }
+
+    private boolean isFull() {
+        return top == storage.length;
+    }
+}
+</pre>
+<p>
+This yields the following warnings when compiled (Sun <code>javac</code> 1.5.0_06):
+</p>
+<pre>
+    [javac] C:\java\scratchpad\src\pholser\util\Stack.java:16: warning: [unchecked] unchecked cast
+    [javac] found   : java.lang.Object
+    [javac] required: T
+    [javac]         final T currentTop = (T) storage[ top ];
+    [javac]                                         ^
+    [javac] C:\java\scratchpad\src\pholser\util\Stack.java:28: warning: [unchecked] unchecked cast
+    [javac] found   : java.lang.Object
+    [javac] required: T
+    [javac]         return (T) storage[ --top ];
+    [javac]                           ^
+    [javac] C:\java\scratchpad\src\pholser\util\Stack.java:34: warning: [unchecked] unchecked cast
+    [javac] found   : java.lang.Object
+    [javac] required: T
+    [javac]         return (T) storage[ --top ];
+</pre>
+<p>
+Note that each of the casts we attempt should be legitimate; if Java's type system is sound, there should be nothing but elements of at least type <code>T</code> in the <code>Stack</code>'s storage.
+</p>
+<p>
+I then attempted to suppress the warnings by applying the <code>@SuppressWarnings( "unchecked" )</code> annotation to various elements of the class.  Firstly, applying it to the class itself should do the trick:
+</p>
+<pre>
+@SuppressWarnings( "unchecked" )
+public class Stack&lt;T&gt; {
+</pre>
+<p>
+Sure enough, no warnings.  However, to quote the javadoc for <code>@SuppressWarnings</code>:
+</p>
+<blockquote>
+As a matter of style, programmers should always use this annotation on the most deeply nested element where it is effective. If you want to suppress a warning in a particular method, you should annotate that method rather than its class.
+</blockquote>
+<p>
+Fair enough.  Tacking the annotation on the declarations of <code>pop()</code> and <code>peek()</code>:
+</p>
+<pre>
+@SuppressWarnings( "unchecked" )
+    public T pop() {
+
+@SuppressWarnings( "unchecked" )
+    public T peek() {
+</pre>
+<p>
+suppresses the warnings on those methods.  We should do the same for the "copy" constructor:
+</p>
+<pre>
+@SuppressWarnings( "unchecked" )
+    public Stack( final Stack&lt;T&gt; other ) {
+</pre>
+<p>
+Golden.  It's nice to be able to apply <code>@SuppressWarnings</code> to so many different kinds of program elements.  We've seen it applied so far at the class, method, and constructor level.
+</p>
+<p>
+By un-inlining ("out-lining?") the return values of <code>pop()</code> and <code>peek()</code>, and the local <code>currentTop</code> in the "copy" constructor, we can show off application of <code>@SuppressWarnings</code> on locals:
+</p>
+<pre>
+        @SuppressWarnings( "unchecked" )
+        final T currentTop = (T) storage[ top ];
+
+        @SuppressWarnings( "unchecked" )
+        final T returnValue = (T) storage[ --top ];
+        return returnValue;
+</pre>
+<p>
+Would an astute reader be so kind as to augment this example to demonstrate how <code>@SuppressWarnings</code> can effectively stifle "unchecked"-flavored warnings on fields or parameters?  Marking the <code>that</code> parameter of <code>Stack.equals()</code> and then attempting a dubious cast of <code>that</code> to <code>Stack&lt;T&gt;</code> didn't stifle the warning.  Also, marking field <code>storage</code> didn't prevent warnings, perhaps because the program element in question in <code>pop()</code>, <code>peek()</code>, and the copy ctor is an element of an array field, not the array field itself.
+</p>
+<p>
+In <a href="http://jaggregate.sourceforge.net">Jaggregate</a> there were a few spots in the code that were generating "unchecked"-flavored warnings--about 20 or so--even though it was demonstrable that the code was correct and would not lead to bad casts.  Once <code>@SuppressWarnings</code> became supported in Java 5 update 6, I undertook an effort to eliminate and/or suppress the remaining warnings.  I found that pretty much all of these warnings were in places where I was attempting a cast to a generic type.  Marking methods and local variables with <code>@SuppressWarnings( "unchecked" )</code> did the trick but seemed to clutter up the code quite a bit.  So, I refactored the casts to a method:
+</p>
+<pre>
+    class Objects {
+        @SuppressWarnings( "unchecked" )
+        static &lt;T&gt; T cast( final Object target ) {
+            return (T) target;
+        }
+    }
+</pre>
+<p>
+Now <em>that's</em> minimizing the scope of the suppression.  8^)
+</p>
+<p>
+So now, instead of:
+</p>
+<pre>
+    @SuppressWarnings( "unchecked" )
+    private void repopulateBucket( final Object bucket ) {
+        for ( Node&lt;K, V&gt; node = (Node&lt;K, V&gt;) bucket;
+            node != null;
+            node = node.nextNode ) {
+
+            put( node.key(), node.value() );
+        }
+    }
+</pre>
+<p>
+or
+</p>
+<pre>
+    private void repopulateBucket( final Object bucket ) {
+        for ( @SuppressWarnings( "unchecked" ) Node&lt;K, V&gt; node = (Node&lt;K, V&gt;) bucket;
+            node != null;
+            node = node.nextNode ) {
+
+            put( node.key(), node.value() );
+        }
+    }
+</pre>
+<p>
+we have:
+</p>
+<pre>
+    private void repopulateBucket( final Object bucket ) {
+        for ( Node&lt;K, V&gt; node = Objects.cast( bucket );
+            node != null;
+            node = node.nextNode ) {
+
+            put( node.key(), node.value() );
+        }
+    }
+</pre>
+<p>
+Note how the type inference on generic methods really helps--we don't have to tell the compiler what we want to cast to, it's kind of a no-brainer in this case.  In other cases, especially when trying to cast to a type specified by a type parameter, you have to give the compiler a hint:
+</p>
+<pre>
+    public E at( final int index ) {
+        checkIndexIsValid( index, "search" );
+
+        return Objects.&lt;E&gt;cast( storage[ index ] );
+    }
+</pre>
+<p>
+It's not crystal clear to me what are the exact circumstances that require the extra hint, but in any event I was able to suppress the warnings in the Jaggregate code with a minimum of clutter.
+</p>
+

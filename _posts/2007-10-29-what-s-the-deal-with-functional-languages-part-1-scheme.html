@@ -1,0 +1,23 @@
+---
+layout: post
+title: What's the deal with functional languages, Part 1: Scheme
+published: 1
+category:
+  - Programming
+---
+<p>What with all the hubbub about <a href="http://www.erlang.org/">Erlang</a>, I've started diving into functional programming languages. Back in school, I learned a bit of <a href="http://www.schemers.org/">Scheme</a> as part of a mostly-Pascal-based second-semester CS course -- just before Scheme became the language with which the introductory CS concepts were introduced to first-year CS students at my university. To get back into the swing of things, I cracked open my copies of Springer and Friedman's <a href="http://mitpress.mit.edu/catalog/item/default.asp?ttype=2&amp;tid=9174">Scheme and the Art of Programming</a>, and <a href="http://www.scheme.com/tspl3/">The Scheme Programming Language, 3rd ed.</a>, and downloaded the excellent <a href="http://www.plt-scheme.org/">PLT Scheme</a> environment. Currently I'm working my way through the exercises in the Springer/Friedman book -- fairly elementary, but I figured I'd start from square one.</p>
+
+<p>Initial observations:</p>
+
+<ul><li>I don't find the parentheses nearly as odious as I thought I would. Modern Scheme environments make matching the parens a snap, and the syntax coloring highlights the important stuff -- namely, the stuff within the parens!</li>
+
+<li>I really appreciate the language's small core -- the fact that many everyday constructs (e.g. <code>let</code>) can be defined in terms of even more primitive constructs (<code>lambda</code>).</li>
+
+<li>Cool to be able to leverage tail recursion and express certain constructs recursively while retaining the smaller memory footprint of the equivalent iterative expression.</li>
+
+<li>Continuations are first-class concepts in Scheme. These still make my head spin, need to read/experiment further...</li>
+
+<li>I can understand why the cool Lisp kids are all, &quot;What's the big deal about closures/map/reduce/etc., they've been here all along!&quot;</li></ul>
+
+<p>More as interesting things arise.</p>
+

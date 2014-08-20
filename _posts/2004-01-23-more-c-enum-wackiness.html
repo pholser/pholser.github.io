@@ -1,0 +1,153 @@
+---
+layout: post
+title: More C# 'enum' Wackiness
+published: 1
+---
+<p>Chris Stevenson rants about C# enums <a href="http://cgi.skizz.plus.com/blog/dev/archives/000167.html#000167">here</a>.  I thought I'd share some of my own observations about C# enums, from earlier in 2003, previously shared only amongst co-workers.</p>
+
+<p>Ostensibly enums are a way to define a type such that variables of that type can assume one of only a fixed set of values.  For example:</p>
+
+<pre>using System;
+namespace Pholser.Sandbox.Enum
+{
+  public enum CardSuit
+  {
+    CLUBS = 1,
+    DIAMONDS,
+    HEARTS,
+    SPADES
+  }
+  public enum CardRank
+  {
+    ACE = 1,
+    TWO,
+    THREE,
+    FOUR,
+    FIVE,
+    SIX,
+    SEVEN,
+    EIGHT,
+    NINE,
+    TEN,
+    JACK,
+    QUEEN,
+    KING
+  }
+public class PlayingCard
+{
+    private CardRank rank;
+    private CardSuit suit;
+    public PlayingCard( CardRank rank, CardSuit suit )
+    {
+      this.rank = rank;
+      this.suit = suit;
+    }
+    public CardRank Rank
+    {
+      get { return this.rank; }
+    }
+    public CardSuit Suit
+    {
+      get { return this.suit; }
+    }
+  }
+}</pre>
+
+<p>In reality, they are a collection of integer constants. Their values can be inferred from the order and manner in which they are declared.  And, it is ridiculously easy to subvert the type safety they purport to offer.</p>
+
+<p>The compiler does recognize when you've passed integers in place of an enum value, even if the integer value corresponds to an enum value:</p>
+
+<pre>    PlayingCard fiveOfHearts =
+      new PlayingCard( 4, 1 );</pre>
+
+<p>But you can cast any integer value to the enum type, including values that are not in the enum:</p>
+
+<pre>    PlayingCard fiveOfHearts =
+      new PlayingCard( (CardRank) 4, (CardSuit) 1 );
+    PlayingCard rulesCard =
+      new PlayingCard( (CardRank) 343, (CardSuit) -1 );</pre>
+
+<p>In fact, zero does not even require the cast:</p>
+
+<pre>    PlayingCard joker =
+      new PlayingCard( 0, 0 );</pre>
+
+<p>To cause the abstraction to leak even further, you can annotate the enum type with the Flags attribute, which enables bitwise-ORs of combinations of the values of the enum to be treated as legal values of the enum, and would appear to modify how == works...assume here that CardSuit is annotated with Flags:</p>
+
+<pre>using System;
+using NUnit.Framework;
+namespace Pholser.Sandbox.Enum
+{
+  [TestFixture]
+  public class PlayingCardTest
+  {
+    [Test]
+    public void InRange()
+    {
+      PlayingCard jackOfSpades =
+        new PlayingCard( CardRank.JACK, CardSuit.SPADES );
+      Assert.AreEqual( CardRank.JACK, jackOfSpades.Rank );
+      Assert.AreEqual( CardSuit.SPADES, jackOfSpades.Suit );
+    }
+    [Test]
+    public void OutOfRange()
+    {
+      PlayingCard joker =
+        new PlayingCard( (CardRank) 12334, (CardSuit) 23489076 );
+      Assert.AreEqual( (CardRank) 12334, joker.Rank );
+      Assert.AreEqual( (CardSuit) 23489076, joker.Suit );
+    }
+    [Test]
+    public void Zero()
+    {
+      PlayingCard joker = new PlayingCard( 0, 0 );
+      Assert.AreEqual( (CardRank) 0, joker.Rank );
+      Assert.AreEqual( (CardSuit) 0, joker.Suit );
+    }
+    [Test]
+    public void Flags()
+    {
+      PlayingCard joker =
+        new PlayingCard( 0, CardSuit.CLUBS | CardSuit.DIAMONDS );
+      Assert.AreEqual( (CardRank) 0, joker.Rank );
+      Assert.AreEqual( CardSuit.HEARTS | CardSuit.DIAMONDS, joker.Suit );
+      Assert.IsTrue(
+        ( CardSuit.HEARTS | CardSuit.DIAMONDS )
+        ==
+        ( CardSuit.CLUBS | CardSuit.DIAMONDS ) );
+    }
+  }
+}</pre>
+
+<p>There are some nice things that enums offer...they all derive from a common superclass (System.Enum) that gives facilities for stringifying values, comparing, etc.  Annotating the enum type with the Flags attribute modifies how Parse(), Format(), and ToString() behave on instances, so that you can see all the "set bits" with their enumeration names and create an enum from such a string representation.  In fact, they're really nice and give you a means to ensure that an enum value really is in range:</p>
+
+<pre>      if ( !Enum.IsDefined( typeof( CardSuit ), suit ) )
+        throw new ArgumentOutOfRangeException(
+          "suit", suit, "invalid suit value" );</pre>
+
+<p>Does this strike anyone else as really odd?  Why not go full on and make them type-safe to begin with.</p>
+
+<p>Let's not fool ourselves, this is not as typesafe as one would think---this is pretty close to C++ enums.  Whether that's a good thing obviously varies by individual opinion....8^)  I was just surprised, as it would seem the trend is toward true typesafe enums.</p>
+
+<p>A response regarding why some of the above is allowed, from Eric Gunnerson of the C# development team:</p>
+
+<blockquote>Enums in C# do dual purpose. They are used for the usual enum use, and they're also used for bit fields. When I'm dealing with bit fields, you often want to AND a value with the bit field and check if it's true.
+
+<p>Our initial rules meant that you had to write:</p>
+
+<p>if ((myVar & MyEnumName.ColorRed) != (MyEnumName) 0)</p>
+
+<p>which we thought was difficult to read. One alernative was to define a zero entry:</p>
+
+<p>if ((myVar & MyEnumName.ColorRed) != MyEnumName.NoBitsSet)</p>
+
+<p>which was also ugly.</p>
+
+<p>We therefore decided to relax our rules a bit, and permit an implicit conversion from the literal zero to any enum type, which allows you to write:</p>
+
+<p>if ((myVar & MyEnumName.ColorRed) != 0)</p>
+
+<p>which is why PlayingCard(0, 0) works. </blockquote></p>
+
+<p>Sheesh.</p>
+

@@ -1,0 +1,73 @@
+---
+layout: post
+title: Oh, for nicer Java exception handling...
+published: 1
+category:
+  - Programming
+---
+<p>The conventional wisdom on handling exceptions says never to catch big-E Exception.  However, often there are legitimate reasons for treating uniformly any exception that might be thrown from within a try block: you may really want to handle any such exception by, say, logging the fault and invoking retry logic, or some such.  Invoking a method or constructor reflectively comes to mind: no matter whether I got a NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, or what not, something's wrong enough, and I want to behave the same.</p>
+
+<p>If you follow the letter of the conventional wisdom, you'll end up with:</p>
+
+<pre>
+  try {
+    // some code that could throw a number of different checked exceptions...
+  }
+  catch ( NoSuchMethodException ex ) {
+    log( ex );
+  }
+  catch ( IllegalAccessException ex ) {
+    log( ex );
+  }
+  catch ( InvocationTargetException ex ) {
+    log( ex.getCause() );
+  }
+  catch ( IllegalAccessException ex ) {
+    log( ex );
+  }
+</pre>
+
+<p>How hideous.  My inclination would be to write:</p>
+
+<pre>
+  try {
+    // some code that could throw a number of different checked exceptions...
+  }
+  catch ( Exception ex ) {
+    log( ex );
+  }
+</pre>
+
+<p>This has the nasty effect of trapping RuntimeExceptions as well -- really, I just wanted to trap all checked exceptions.  So we do:</p>
+
+<pre>
+  try {
+    // some code that could throw a number of different checked exceptions...
+  }
+  catch ( RuntimeException ex ) {
+    throw ex;
+  }
+  catch ( Exception ex ) {
+    log( ex );
+  }
+</pre>
+
+<p>That makes us look like newbies -- catching an exception only to re-throw it?</p>
+
+<p>What if we had a construct that let us specify all the exception types we wanted to trap and handle with one single catch block?</p>
+
+<pre>
+  try {
+    // some code that could throw a number of different checked exceptions...
+  }
+  catch ( IllegalAccessException, InstantiationException, NoSuchMethodException ex ) {
+    log( ex );
+  }
+  catch ( InvocationTargetException ex ) {
+    log( ex.getCause() );
+  }
+</pre>
+
+<p>Would this be useful?  You'd be restricted to manipulating ex only via methods on the most specific type common to the hierarchies of the types specified -- in this case, Exception.<br />
+</p>
+

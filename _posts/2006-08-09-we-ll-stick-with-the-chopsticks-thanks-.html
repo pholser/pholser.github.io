@@ -1,0 +1,27 @@
+---
+layout: post
+title: We'll stick with the chopsticks, thanks...
+published: 1
+category:
+  - Programming
+---
+<p>I recently started a C++ project at work. I hadn't done any serious C++ programming since 1998, so this was a great chance to shake off the rust.</p>
+
+<p>The project had been underway for some weeks when I joined. I was pleased to see a number of <a href="http://cppunit.sourceforge.net">CppUnit</a> tests had already been written for most of the non-GUI functionality. A number of things about the tests surprised me, though:</p>
+
+<ul><li>A <code>suite()</code> method explicitly on each test class, including an <code>AllTests</code> class whose <code>suite()</code> explicitly aggregates every other test class's <code>suite()</code></li>
+
+<li>Explicitly defined <code>TestClassCtor( std::string name )</code> and <code>~TestClassCtor()</code> on the test classes</li>
+
+<li>The assertions took the form of <code>Asserter::failIf( x != y, &quot;x is not equal to y&quot; )</code></li></ul>
+
+<p>After perusing the CppUnit cookbook for a few minutes, I found the macros <code>CPPUNIT_TEST_SUITE()</code>, <code>CPPUNIT_TEST()</code>, <code>CPPUNIT_TEST_SUITE_END()</code>, <code>CPPUNIT_TEST_SUITE_REGISTRATION()</code>, and all the assert macros which help you out by capturing the line number of the assertion that popped, especially <code>CPPUNIT_ASSERT_EQUAL( expected, actual )</code>, which will not only tell you that x != y, but what x and y really were. The test suite creation and registration macros eliminate the need for <code>AllTests</code> and <code>suite()</code> methods by priming the test classes to be created and aggregated by <code>CppUnit::TestRegistryFactory::getRegistry().makeTest().</code> Nice, eh? Way less boilerplate in the test classes, and nicer, more helpful assertions. Granted, to use the <code>CPPUNIT_ASSERT_EQUAL</code> stuff you may end up writing assertion traits for some of your test subjects...but those are pretty simple, and livable.</p>
+
+<p>After introducing these items, the team seemed to get on board with using <code>CPPUNIT_TEST_SUITE()</code>, <code>CPPUNIT_TEST()</code>, and <code>CPPUNIT_TEST_SUITE_END()</code>, but not the test suite registration/eliminating <code>AllTests</code> and not the handier assertion macros.</p>
+
+<p>I guess sometimes even newly-formed habits die hard.</p>
+
+<p>I'm reminded of a <a href="http://www.sonypictures.com/tv/shows/seinfeld/">Seinfeld</a> episode in which Jerry ponders chopsticks:</p>
+
+<blockquote><p>...Because, if you think about it, you know, they've seen the fork... by now. I'm sure they've seen the spoon, they're going, &quot;Yeah, yeah, they're OK... We're going to stay with the sticks.&quot; I mean, I don't know how they've missed it: thousands of years ago, Chinese farmer gets up, has his breakfast with the chopsticks, goes out and works all day in the field with a shovel... Hello?... Shovel! Not going out there ploughing forty acres with a couple of pool cues.</p></blockquote>
+

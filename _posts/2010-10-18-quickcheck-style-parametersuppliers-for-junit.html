@@ -1,0 +1,26 @@
+---
+layout: post
+title: QuickCheck-style ParameterSuppliers for JUnit
+published: 1
+category:
+  - Programming
+---
+<p><a href="http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html" target="_self">QuickCheck</a> is a neat <a href="http://haskell.org/" target="_self">Haskell</a> tool for specifying properties that should hold for functions and firing lots of random inputs into those functions to test that the properties hold true. <a href="http://www.junit.org" target="_self">JUnit</a>'s answer to such properties is the notion of "<a href="http://junit.sourceforge.net/README.html#theories" target="_self">theories</a>." Using some annotations and <a href="http://kentbeck.github.com/junit/javadoc/latest/org/junit/experimental/theories/ParameterSupplier.html" target="_self">ParameterSupplier</a>s, it should be possible to generate some number of random values for theory parameters. To test this out, I've started a project on <a href="http://github.com" target="_self">GitHub</a> called <a href="http://github.com/pholser/junit-quickcheck" target="_self">junit-quickcheck</a>. It's rather embryonic at this point, but I hope to grow it into something lots of people can benefit from.</p>
+
+<p>A quick example:</p>
+
+<p><pre><code>
+    @RunWith(Theories.class)
+    public class AbsoluteValue {
+        // fire 100 random ints at the theory
+        @Theory
+        public void isAdditiveInverse(@ForAll int i) {
+            assumeThat(i, lessThan(0));
+            assertEquals(-i, Math.abs(i));
+        }
+    }
+</code></pre></p>
+
+<p>What about remembering previously successful/failed values? Restricting/broadened sample size? So many possibilities...</p>
+
+

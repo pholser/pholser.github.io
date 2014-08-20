@@ -1,0 +1,91 @@
+---
+layout: post
+title: CHECKSTYLE:OFF comments are still apologies
+published: 1
+category:
+  - Programming
+---
+<p><a href="http://checkstyle.sourceforge.net">Checkstyle</a> is a fantastic tool to help Java development teams keep code clean and unsurprising. The feedback it gives should be treated as suggestions from a trusted advisor, not a nuisance. If I write a method that's getting a bit long-winded or overly complex, I'd like to know, so that I have an opportunity to make it easier to understand and maintain. I don't ever want to be "that guy" on my development teams -- leaving messes for others to wade through and clean up, slowing them down in the process. (Every once in a while, to my shame, I have been.)</p>
+
+<p>Checkstyle allows you to exempt sections of code from the checks it performs by enclosing the section in special comments:</p>
+
+<p><pre><code>
+// CHECKSTYLE:OFF
+    /* mess here */
+// CHECKSTYLE:ON
+</code></pre></p>
+
+<p>There are times where such selective overriding of style checks is appropriate.  Here's an example from something I worked on recently:</p>
+
+<p><pre><code>
+abstract class ExceptionLoggingCallable&lt;V&gt; implements Callable&lt;V&gt; {
+    // ...
+
+    // CHECKSTYLE:OFF -- We advertise Exception because the method we implement does,
+    // and because we want Exceptions in general to be rethrown.  We catch Exception
+    // and Throwable in order to log them and rethrow.
+    public final V call() throws Exception {
+        try {
+            return doSomethingThatMightRaiseAnException();
+        } catch (Exception ex) {
+            logger.error(ex);
+            throw ex;
+        } catch (Throwable ex) {
+            logger.fatal(ex);
+            throw new RuntimeException(ex);
+        }
+    }
+    // CHECKSTYLE:ON
+
+    protected abstract V doSomethingThatMightRaiseAnException();
+}
+</code></pre></p>
+
+<p>I specifically chose to subvert the <code>IllegalCatch</code> and <code>IllegalThrows</code> checks here for what I believed to be legitimate reasons. I gave those reasons in the <code>CHECKSTYLE:OFF</code> comments, so that readers would know it was not a lightly-taken decision.</p>
+
+<p>Now consider the following code. Do you believe the Checkstyle checks are subverted for good reason?</p>
+
+<p><pre><code>
+    // CHECKSTYLE:OFF
+    private void startLateCount(String localName, Attributes attributes) {
+        if ("_LATE_COUNT".equals(localName) && currentLiability != null) {            
+            int timesThirtyDaysLate = 0;
+            try
+            {
+                String thirtyDayAttr = attributes.getValue("_30Days");
+                timesThirtyDaysLate = timesThirtyDaysLate + Integer.parseInt(thirtyDayAttr);                
+            }
+            catch ( NumberFormatException nfe ) {
+                
+            }
+            
+            try
+            {
+                String sixtyDayAttr = attributes.getValue("_60Days");
+                timesThirtyDaysLate = timesThirtyDaysLate + (Integer.parseInt(sixtyDayAttr) * 2);                
+            }
+            catch ( NumberFormatException nfe ) {
+                
+            }
+            
+            try
+            {
+                String ninetyDayAttr = attributes.getValue("_90Days");
+                timesThirtyDaysLate = timesThirtyDaysLate + (Integer.parseInt(ninetyDayAttr) * 3);                
+            }
+            catch ( NumberFormatException nfe ) {
+                
+            }
+            currentLiability.setMonthsDelinquent(timesThirtyDaysLate);
+        }
+    }
+    // CHECKSTYLE:ON
+</code></pre></p>
+
+<p>My Checkstyle configuration caught brace-placement and empty <code>catch</code> block issues here -- but a cursory glance at the code should reveal a duplication of structure that is begging to be factored out.</p>
+
+<p>Do not use <code>CHECKSTYLE:OFF</code> as a cloaking device that allows bad code to exist in the system undetected by tools. Use it as an <a href="http://butunclebob.com/ArticleS.TimOttinger.ApologizeIncode">apology</a> for not being able to express the computation without breaking "the rules". If you must exempt some code from Checkstyle, explain why. If you see code snippets that are <code>CHECKSTYLE:OFF</code>'ed, ask yourself whether the reasons are legitimate, and if they aren't, refactor until the structure is improved and the intent clarified.</p>
+
+<p>Same goes for any other static analysis tools that are there to help you, not annoy you.</p>
+
+

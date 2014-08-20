@@ -1,0 +1,13 @@
+---
+layout: post
+title: Java 'final' "in anger"
+published: 1
+category:
+  - Programming
+---
+<p>Another debate about the <a href="http://java.sun.com/docs/books/jls/third_edition/html/typesValues.html#4.12.4">'final' keyword in Java</a> forges ahead on <a href="http://www.javalobby.org/java/forums/t84151.html">JavaLobby</a>. Certainly classes and methods marked 'final' impede efforts to test in isolation (via mocking) classes that collaborate with such classes. We all know to declare class-level constants as 'static final'. For fields that should not change after assignment, of course we'd mark those 'final'. But what about method parameters, local variables, and catch block variables? Any benefit to marking these when we intend that they never change what they refer to?</p>
+
+<p>I decided to use 'final' on method parameters, local variables, and catch parameters &quot;in anger&quot; on my <a href="http://jaggregate.soruceforge.net">open source</a> <a href="http://jopt-simple.sourceforge.net">projects</a> and my last work project. The results? More code clutter for no perceivable benefit. On occasion I had to mark variables 'final' so that inner classes could use them safely. Beyond that, though, it didn't help me much; it just added clutter. So I ended up undoing as much 'final'-ization as I could.</p>
+
+<p>In my opinion, one should leave 'final' on such program elements alone, and let your IDE and/or a static analyzer like Checkstyle warn you when you try to reuse a parameter or local. That is, after all, generally the intent of those who would use 'final' on variables: to enforce a coding standard about reusing variables. I prefer to let other tools help me on that score, rather than dragging the compiler into it.</p> 
+

@@ -1,0 +1,36 @@
+---
+layout: post
+title: Dating tips
+published: 1
+category:
+  - Programming
+---
+<p>If you're going to use both <code><a href="http://java.sun.com/javase/6/docs/api/java/text/DateFormat.html">java.text.DateFormat</a></code>s and <a href="http://joda-time.sourceforge.net/">Joda Time</a> <code><a href="http://joda-time.sourceforge.net/api-release/org/joda/time/format/DateTimeFormatter.html">DateTimeFormatter</a></code>s, be confident that the time zone data of both the JDK and Joda agree (they are different physical sources). Otherwise, you could end up up with head-scratchers such as this:</p>
+
+<p><pre><code>
+import static java.util.TimeZone.*;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
+public class DateFormatting {
+    public static void main(String... args) throws Exception {
+        TimeZone.setDefault(getTimeZone("Asia/Karachi"));
+        DateFormat from = new SimpleDateFormat("yyyyMMdd");
+        Date parsed = from.parse("20081001");
+        DateTimeFormatter to = DateTimeFormat.forPattern("MM/yyyy");
+        System.out.println(to.print(parsed.getTime())); // "09/2008"
+    }
+}
+</code></pre></p>
+
+<p>Or maybe don't intermix the two.</p>
+
+<p>Consider yourself warned.</p>
+
+

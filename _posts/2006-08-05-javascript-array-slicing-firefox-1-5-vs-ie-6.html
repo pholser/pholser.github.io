@@ -1,0 +1,13 @@
+---
+layout: post
+title: JavaScript array slicing: Firefox 1.5 vs IE 6
+published: 1
+category:
+  - Programming
+---
+<p>At work recently I found myself trying to improve the execution time of a JavaScript routine that processed bits of text in chunks of a few characters each.&nbsp; The text was stored as a JavaScript Array.&nbsp; To process the text a chunk at a time, the routine performed an Array.slice() to extract a copy of the next chunk, then handed it off to another function for some processing.&nbsp; This was proving to be very slow and CPU-intensive on IE 6 for large blocks of text; Firefox 1.5 seemed to handle the same data about 10 times faster.</p>
+
+<p>After going through three successively optimized versions of the per-chunk routine, the performance was still unacceptable on IE.&nbsp; So, my attention turned to the Array.slice()ing.&nbsp; According to <a href="http://blogs.msdn.com/ericlippert/archive/2003/09/17/53038.aspx">this post</a>, IE 6's garbage collection heuristics are somewhat naive when applied to modern JavaScript-y, AJAX-ian applications.&nbsp; I thought perhaps the successive slicing of the large array was tripping IE's GC, but not Firefox's.&nbsp; So rather than slice()ing, I just copied the chunk into a smaller, chunk-size, temporary array each time.&nbsp; After that change, the routine ran like a champ on IE.</p>
+
+<p>Beware of perhaps unnecessary object/array allocations in JavaScript, especially in loops, if you're targeting IE; you never know when something like this may bite you.</p>
+

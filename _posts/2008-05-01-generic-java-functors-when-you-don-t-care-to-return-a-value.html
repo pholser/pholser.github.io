@@ -1,0 +1,46 @@
+---
+layout: post
+title: Generic Java functors: When you don't care to return a value
+published: 1
+category:
+  - Programming
+---
+<p>My colleague <a href="http://www.rodcoffin.com">Rod</a> presented me with the following (paraphrased):</p>
+
+
+
+<pre><code>
+&nbsp; &nbsp; public interface Executable&lt;T&gt; {
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; T execute();
+&nbsp; &nbsp; }
+</code></pre>
+
+<p>The question arose: What if an implementor doesn't have a meaningful value to return?</p>
+
+
+
+<pre><code>
+&nbsp; &nbsp; public class MyExecutable implements Executable&lt;____&gt; {
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; // ...
+&nbsp; &nbsp; }
+</code></pre>
+
+<p>You could fill in the blank with <code>Object</code> and return <code>null</code> or <code>this</code>, perhaps. However, we agreed that this doesn't communicate as well to its clients the fact that there really isn't a return value and it shouldn't even be used. You can't use primitive <code>void</code> since it really isn't a type, and is a primitive anyhow (forbidden as a generic type parameter). What to do?</p>
+
+<p>How about <code>java.lang.Void?</code></p>
+
+
+
+<pre><code>
+&nbsp; &nbsp; public class MyExecutable implements Executable&lt;Void&gt; {
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; public Void execute() {
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;// do stuff
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return null;
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; }
+&nbsp; &nbsp; }
+</code></pre>
+
+<p>We felt that this clearly communicated that there's no useful return value for the functor. In fact, since <code>java.lang.Void</code> is uninstantiable, the only value the functor could return is <code>null</code>. Nifty, eh? Ever think you'd use <code>java.lang.Void</code>?</p>
+
+<p><a href="http://jaggregate.sourceforge.net">Jaggregate</a> internally uses a number of generic functors that really don't need to return anything. I changed them to return <code>java.lang.Void</code> instead of <code>Object</code>, and I'm happy with the results.</p>
+

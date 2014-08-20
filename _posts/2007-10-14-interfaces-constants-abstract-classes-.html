@@ -1,0 +1,19 @@
+---
+layout: post
+title: Interfaces : Constants :: Abstract classes : ...
+published: 1
+category:
+  - Programming
+---
+<p>...static methods?</p>
+
+<p>It's common practice in Java projects to use an interface as a dumping ground for related constants. Back in the pre-1.5 days, developers did this in order that client classes could implement the interface and gain unqualified access to the fields. Nowadays, of course, you can just static-import the constants you need to use. In addition, the fact that fields on interfaces are implicitly <code>static</code> and <code>final</code> made declaring the constants less verbose.</p>
+
+<p><a href="http://www.amazon.com/Effective-Java-Programming-Language-Guide/dp/0201310058">Effective Java</a> discourages this practice on published interfaces, for good reasons. Even if the interfaces aren't published, you might discourage the practice on the premise that an interface is intended to prescribe behaviors that implementers promise to honor -- not to hold a bunch of constants. My thought is that if your team agrees that constants can be placed into interfaces, those interfaces consist of constants only, and the interfaces aren't to be implemented, such use is okay. You could even cook up <a href="http://checkstyle.sourceforge.net">Checkstyle</a> or <a href="http://pmd.sourceforge.net">PMD</a> rules to enforce the practice.</p>
+
+<p>For utility classes, I'd cultivated the habit of making their constructors package-private or <code>protected</code>, having them raise <code>UnsupportedOperationException</code>, and writing a test to demonstrate the results of attempting such an instantiation. See <a href="http://cleveralias.blogs.com/thought_spearmints/2005/02/nice_idiom_for_.html">this entry</a> for more on that. Recently, a colleague suggested that instead of writing all that boilerplate for a utility class, why not make utility classes <code>abstract</code> instead? That way we're guaranteed uninstantiability; plus, we don't have to make the constructor less private than we want just so we can write a test to demonstrate the instantiation behavior (or turn off code coverage for such a constructor). Initially I balked at the suggestion, because in my mind abstract connoted an invitation to subclass, when utility classes typically aren't extended. I almost wanted to be able to declare such a class both <code>abstract</code> and <code>final</code>. Really, I wanted <a href="http://msdn2.microsoft.com/en-us/library/79b3xss3(VS.80).aspx">C#'s static classes</a>.</p>
+
+<p>In the end, I supported the notion of declaring utility classes <code>abstract</code>. I'd like to write a Checkstyle rule that ensures that when a class consists solely of <code>static</code> members, it is declared <code>abstract</code>.</p>
+
+<p>Interesting how I came around on this one.</p>
+

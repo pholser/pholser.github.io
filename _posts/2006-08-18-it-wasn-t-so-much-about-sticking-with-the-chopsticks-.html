@@ -1,0 +1,39 @@
+---
+layout: post
+title: It wasn't so much about sticking with the chopsticks...
+published: 1
+category:
+  - Programming
+---
+<p>In a <a href="http://cleveralias.blogs.com/thought_spearmints/2006/08/well_stick_with.html">previous post</a>, I discussed what appeared to be my project partners' mild apprehension about using helpful <a href="http://cppunit.sourceforge.net">CppUnit</a> assertions like <code>CPPUNIT_ASSERT_EQUAL()</code>, and preferring to stick with the very raw, way less helpful <code>Asserter::failIf()</code>. Turns out it wasn't apprehension at all. A lot of ideas crystallized in my mind when I watched a certain programmer, within about an hour of one programming session, eliminate two compiler warnings, with the following constructs:</p>
+
+<ol><li><code>CPPUNIT_ASSERT_EQUAL( 2, aCArray.GetCount() );</code></li>
+
+<li><code>for ( int i = 0; i &lt; aStdVector.size(); ++i ) { /* ... */ }</code></li></ol>
+
+<p>The warnings:</p>
+
+<ul><li><kbd>conversion from 'INT_PTR' to 'int', possible loss of data</kbd></li>
+
+<li><kbd>conversion from 'size_t' to 'int', possible loss of data</kbd></li></ul>
+
+<p>If you're that certain programmer, the way you fix #2 is to cast the result of <code>size()</code> on the <code>std::vector</code> to <code>int</code>. Sounds reasonable. And the way you fix #1 is...to discard <code>CPPUNIT_ASSERT_EQUAL</code> in favor of:</p>
+
+<p><code>Asserter::failIf( aCArray.GetCount() != 2, &quot;there were not two items&quot; );</code></p>
+
+<p>??!?!</p>
+
+<p>But then the following occurred to me:</p>
+
+<ul><li>If all you're going to do when a test fails is to dive right into the debugger and start checking values, you don't need the line number of the assertion that popped; you don't need to know at failure time what the actual vs. expected values are. But then again, if you're just going to dive into the debugger, why write automated tests?</li>
+
+<li>If you're not going to run every test in response to a change in your system, why are they there?</li>
+
+<li>Are they there to document usages of well-factored, isolated components of your design? If so, why not write assertions that are easier to read?</li>
+
+<li>Oh, but wide swaths of duplication, abbreviated names, and Hungarian notation are easy to read for you? Then you're a super genius...therefore you don't need the tests...therefore why write them?</li>
+
+<li>So tests are important enough to write, but not important enough to treat as first-class project citizens and keep them clean, readable, and running? Oh wait...the production code isn't clean and readable either...</li></ul>
+
+<p>Maybe I'm a code snob, but it just drives me crazy to watch people accrete terrible code time and time again, project after project, and not once look back and ask, &quot;How can I do this better?&quot; Clashing value systems and the aftermath of wreckage...(sigh)</p>
+

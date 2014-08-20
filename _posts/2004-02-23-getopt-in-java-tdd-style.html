@@ -1,0 +1,13 @@
+---
+layout: post
+title: getopt in Java, TDD-style
+published: 1
+category:
+  - Programming
+---
+<p>There are a lot of libraries out there that perform the functions of POSIX/GNU <strong>getopt()</strong>/<strong>getopt_long()</strong> for Java: <a href="http://jakarta.apache.org/commons/cli">Jakarta Commons CLI</a>, <a href="http://jargs.sourceforge.net">JArgs</a>, <a href="http://www.urbanophile.com/arenn/hacking/download.html">GNU Getopt transliterated to Java</a>...many of them with some fairly gnarly code in their innards.  I'm not convinced that parsing command line arguments is such a gnarly problem.</p>
+
+<p>Ultimately the real answer for Java programs probably is to wrap JVM invocations in a <strong>bash</strong> script, Perl/Python/Ruby script, something that can already parse options and translate them into Java system properties (<strong>-Dproperty=value</strong>).</p>
+
+<p>However, I thought I'd see where TDD would lead <a href="http://home.comcast.net/~pholser/software/pholser-getopts.zip">my own implementation</a>.  This is a work in progress, and is subject to change without notice...if deemed useful enough, I'll do something more "official" with it.  But for now, check out the code and see if you like it better than other solutions out there.  Perhaps you'll be moved to try TDD on your next project.</p>
+

@@ -1,0 +1,85 @@
+---
+layout: post
+title: Tweaking JUnit test running behavior
+published: 1
+category:
+  - Programming
+---
+<p><a href="http://binkley.blogspot.com/2004/08/junit-work-around-for-lost-exceptions.html">Binkley</a> writes about extending <a href="http://www.junit.org">JUnit</a> in order to preserve the original cause of test failure in the presence of tearDown() throwing exceptions.  If you want to preserve the cause of the tearDown() failure, use this slight modification of the technique:</p>
+
+<pre>import java.io.PrintStream;
+import java.io.PrintWriter;
+import junit.framework.TestCase;
+public abstract class BaseTestCase extends TestCase {
+  public static final String LINE_SEPARATOR = System.getProperty( "line.separator" );
+  public void runBare() throws Throwable {
+    Throwable causeOfTestFailure = null;
+    setUp();
+    try {
+      runTest();
+    }
+    catch ( Throwable unexpected ) {
+      causeOfTestFailure = unexpected;
+    }
+    finally {
+      tearDown( causeOfTestFailure );
+    }
+  }
+  private void tearDown( Throwable causeOfTestFailure ) throws Throwable {
+    Throwable causeOfTearDownFailure = null;
+    try {
+      tearDown();
+    }
+    catch ( Throwable unexpected ) {
+      causeOfTearDownFailure = unexpected;
+    }
+    finally {
+      if ( null != causeOfTearDownFailure ) {
+        throw new TearDownFailureException( causeOfTearDownFailure, causeOfTestFailure );
+      }
+      else if ( null != causeOfTestFailure ) {
+        throw causeOfTestFailure;
+      }
+    }
+  }
+}
+class TearDownFailureException extends Throwable {
+  private Throwable causeOfTestFailure;
+  TearDownFailureException( Throwable causeOfTearDownFailure, Throwable causeOfTestFailure ) {
+    super( causeOfTearDownFailure );
+    this.causeOfTestFailure = causeOfTestFailure;
+  }
+  public String getMessage() {
+    StringBuffer message = new StringBuffer( super.getMessage() );
+    if ( causeOfTestFailure != null ) {
+      message.append( CAUSE_OF_TEST_FAILURE_PREFIX )
+        .append( ' ' )
+        .append( causeOfTestFailure.getMessage() );
+    }
+    return message.toString();
+  }
+  public void printStackTrace( PrintStream outStream ) {
+    synchronized ( outStream ) {
+      super.printStackTrace( outStream );
+      if ( causeOfTestFailure != null ) {
+        outStream.println();
+        outStream.println( CAUSE_OF_TEST_FAILURE_PREFIX );
+        causeOfTestFailure.printStackTrace( outStream );
+      }
+    }
+  }
+  public void printStackTrace( PrintWriter outWriter ) {
+    synchronized ( outWriter ) {
+      super.printStackTrace( outWriter );
+      if ( causeOfTestFailure != null ) {
+        outWriter.println();
+        outWriter.println( CAUSE_OF_TEST_FAILURE_PREFIX );
+        causeOfTestFailure.printStackTrace( outWriter );
+      }
+    }
+  }
+  static final String CAUSE_OF_TEST_FAILURE_PREFIX = "...Cause of test failure:";
+}</pre>
+
+<p>How would I get <a href="http://beust.com/testng">TestNG</a> or <a href="http://nunit.org">NUnit</a>, or other xUnit variant in which the fixtures, setup, teardown, etc. are identified by metadata on code elements, to exhibit this behavior?  My uninformed opinion: score another one for JUnit.</p>
+

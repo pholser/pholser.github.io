@@ -1,0 +1,18 @@
+---
+layout: post
+title: Richer Java runtime type info with javaRuntype
+published: 1
+category:
+  - Programming
+---
+<p>By now you surely know that Java's generics info is erased from objects during compilation. For example, given an object whose runtime class is java.util.List, I cannot tell at runtime whether the object was originally a List&lt;Integer&gt;, or a List&lt;String&gt;, or what have you.</p>
+
+<p>However, Java has some generics capability using reflection. There are generics-aware counterparts to the generics-unaware reflection capabilities that Java has had for so long. Given a <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/Method.html#getGenericParameterTypes()">method</a> or <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/Constructor.html#getGenericParameterTypes()">constructor</a>, you can discover the types of its parameters. Given a method, you can <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/Method.html#getGenericReturnType()">discover its return type</a>. Given a field, you can <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/Field.html#getGenericType()">discover its type</a>. Given a class or interface, you can discover its <a href="http://download.oracle.com/javase/6/docs/api/java/lang/Class.html#getGenericSuperclass()">superclass</a>, <a href="http://download.oracle.com/javase/6/docs/api/java/lang/Class.html#getGenericInterfaces()">implemented interfaces, or superinterfaces</a>.</p>
+
+<p>The generics-aware reflection capabilities deal not in java.lang.Class objects, but in instances of <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/Type.html">java.lang.reflect.Type</a>. Type by itself is not terribly useful: it prescribes no methods! To do meaningful work with Types, you have to test whether they're instances of either Class, <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/ParameterizedType.html">ParameterizedType</a>, <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/WildcardType.html">WildcardType</a>, <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/GenericArrayType.html">GenericArrayType</a>, or <a href="http://download.oracle.com/javase/6/docs/api/java/lang/reflect/TypeVariable.html">TypeVariable</a>, and downcast. Worse still, if your Type is not a Class, you miss out on nice things you can ask Classes, such as <a href="http://download.oracle.com/javase/6/docs/api/java/lang/Class.html#isAssignableFrom(java.lang.Class)">isAssignableFrom()</a>.</p>
+
+<p>Not a big deal, perhaps, until you work on a <a href="http://junit.org">library</a> or <a href="https://github.com/pholser/junit-quickcheck">extension</a> that could put the generics info to good use.</p>
+
+<p>Enter <a href="http://www.javaruntype.com">javaRuntype</a>. This fantastic library does the dirty work of providing Class-like functionality such as isAssignableFrom() for you. Kudos to Daniel Fernandez for his attempt to rescue java.lang.reflect.Type and its brethren from second-class citizen status.</p>
+
+

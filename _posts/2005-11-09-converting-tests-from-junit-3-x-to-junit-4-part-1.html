@@ -1,0 +1,119 @@
+---
+layout: post
+title: Converting Tests from JUnit 3.x to JUnit 4, Part 1
+published: 1
+category:
+  - Programming
+---
+<p>In this entry, I aim to illustrate some of the issues that developers may encounter as they migrate their existing <a href="http://junit.org">JUnit</a> 3.x test suites to JUnit 4.</p>
+
+<p>For this illustration, we'll migrate the tests for <a href="http://jaggregate.sf.net">Jaggregate</a>, a Java-5-only collections library that is modeled after the ANSI Smalltalk collection protocols.&nbsp; As of this writing, there are over 3700 JUnit test methods in the project.&nbsp; They are run by an AllTests class which exposes a suite() method.&nbsp; The suite() method uses the <a href="http://junit-addons.sf.net">JUnit Addons</a> <a href="http://junit-addons.sourceforge.net/junitx/util/DirectorySuiteBuilder.html">DirectorySuiteBuilder</a> to collect a suite of all test classes in a given directory.&nbsp; The project's <a href="http://ant.apache.org">Ant</a> build file compiles all the test classes to a particular build directory; so the DirectorySuiteBuilder interrogates this directory for the test classes it seeks.</p>
+
+<p>package test.jaggregate;</p>
+
+<p>import junit.framework.Test;<br />import junitx.util.DirectorySuiteBuilder;<br />import junitx.util.SimpleTestFilter;</p>
+
+<p>public final class AllTests {<br />&nbsp; &nbsp; private AllTests() {<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; throw new UnsupportedOperationException(<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&quot;Do not instantiate this utility class&quot; );<br />&nbsp; &nbsp; }</p>
+
+<p>&nbsp; &nbsp; public static Test suite() throws Exception {<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; final DirectorySuiteBuilder suiteBuilder = new DirectorySuiteBuilder();<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; suiteBuilder.setFilter( new SimpleTestFilter() );</p>
+
+<p>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; return suiteBuilder.suite( &quot;build/test-classes&quot; );<br />&nbsp; &nbsp; }<br />}</p>
+
+<p>To start with, we obtain the latest source for JUnit 4 (as of November 8, 2005) from CVS, and build it using its Ant build file.&nbsp; The dist target of JUnit's build file creates junit.jar, which contains all the classes needed to create and run JUnit tests.</p>
+
+<p>At this point, I realize how much the modern Java IDE has spoiled me.&nbsp; The baked-in JUnit support - with custom test runners that allow one-click execution of any slice of the JUnit test tree, one-click navigation to locations mentioned in stack traces, and the like - is so handy that having to go without it for purposes of this demonstration really feels like &quot;roughing it.&quot;&nbsp; I can't remember the last time I had to invoke a JUnit test runner by hand.&nbsp; OK, here goes...</p>
+
+<p>The first order of business is to ensure that all the tests run fine with the JUnit 3.8.1 console test runner, junit.textui.TestRunner.&nbsp; In the root directory of Jaggregate's source distribution, ensuring that Jaggregate's test class files, Jaggregate's test subject class files, and the dependencies thereof (JUnit 3.8.1's junit.jar, and junit-addons.jar) are on the classpath, we fire up the old-style runner:</p>
+
+<p>&gt; java -cp build\classes;build\test-classes;lib\junit.jar;lib\junit-addons.jar junit.textui.TestRunner test.jaggregate.AllTests</p>
+
+<p>.........................................<br />.........................................<br />[snip]<br />.......................................<br />Time: 1.625</p>
+
+<p>OK (3729 tests)</p>
+
+<p>Fantastic, all the tests pass.</p>
+
+<p>Next, let's try to run the tests using JUnit 4's version of the JUnit 3.x-style console test runner.&nbsp; This execution will look much like the first, except we'll swap in JUnit 4's junit.jar for 3.8.1's junit.jar on the classpath:</p>
+
+<p>&gt; java -cp build\classes;build\test-classes;c:\java\junit<br />4\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar junit.textui.TestRunner test.jaggregate.AllTests</p>
+
+<p>.F<br />Time: 0.015<br />There was 1 failure:<br />1) warning(junit.framework.TestSuite$1)junit.framework.AssertionFailedError: Class test.jaggregate.AllTests has no public constructor TestCase(String name) or TestCase()</p>
+
+<p>FAILURES!!!<br />Tests run: 1,&nbsp; Failures: 1,&nbsp; Errors: 0</p>
+
+<p>In JUnit 3.8.1, if the class you handed to the test runner declared a public static Test suite() method, the runner would execute that method and run() the resulting suite, regardless of whether the providing class was a derivative of TestCase.&nbsp; With JUnit 4, it seems as if the test runner is expecting the target class to be a derivative of TestCase with the attendant constructors.</p>
+
+<p>It turns out that JUnit 4 introduced a defect into junit.textui.TestRunner.start(String[] args).&nbsp; Apparently there is a new command line option -m, which when given a fully qualified test method name, will attempt to instantiate the class on which the method is indicated to reside, and execute that single test. start() looks like this (some irrelevant details elided):</p>
+
+<p>public TestResult start(String args[]) throws Exception {<br />&nbsp; &nbsp; String testCase= &quot;&quot;;<br />&nbsp; &nbsp; String method= &quot;&quot;;</p>
+
+<p>&nbsp; &nbsp; // parse args here...if -m, set testCase and method<br />&nbsp; &nbsp; // set testCase to next arg if no more options</p>
+
+<p>&nbsp; &nbsp; if (method != null)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; return runSingleMethod(testCase, method, wait);</p>
+
+<p>&nbsp; &nbsp; Test suite= getTest(testCase);<br />&nbsp; &nbsp; return doRun(suite, wait);<br />}</p>
+
+<p>If start() doesn't receive a -m option with argument, then method will remain pointed to the empty string, which is not null, which will cause start() to try to instantiate test.jaggregate.AllTests.&nbsp; This instaniation fails, since it wants a public zero-argument or one-argument (String name) constructor on the target class.&nbsp; Oops!</p>
+
+<p>Initializing method to null instead of the empty string gets us around the issue.&nbsp; So, let's make the change and rebuild JUnit 4.&nbsp; Now when we fire off the command line above:</p>
+
+<p>&gt; java -cp build\classes;build\test-classes;c:\java\junit<br />4\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar junit.textui.TestRunner test.jaggregate.AllTests</p>
+
+<p>.........................................<br />.........................................<br />[snip]<br />.......................................<br />Time: 0.609</p>
+
+<p>OK (3729 tests)</p>
+
+<p>Goodness.</p>
+
+<p>Now, let's try to run the JUnit 3.x-style tests unmodified, this time using the new JUnit 4 test runner.&nbsp; The JUnit 4 analogue to JUnit 3.x's console test runner is org.junit.runner.JUnitCore.&nbsp; So, let's fire it up thusly:<br />C:\java\jaggregate-trunk&gt;java -cp build\classes;build\test-classes;c:\java\junit4\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar org.junit.runner.JUnitCore test.jaggregate.AllTests<br />JUnit version 4.0rc1<br />E<br />Time: 0<br />There was 1 failure:<br />1) Test mechanism failure<br />java.lang.Exception: Test class should have public zero-argument constructor<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.internal.TestIntrospector.validateTestMethods(TestIntrospector.java:33)<br />[snip]</p>
+
+<p>FAILURES!!!<br />Tests run: 0,&nbsp; Failures: 1</p>
+
+<p>Maybe we got a little overzealous by making our AllTests class uninstantiable.&nbsp; Let's remove the private constructor altogether, and let the compiler provide a default public zero-argument constructor for us.&nbsp; Now, we run again:</p>
+
+<p>C:\java\jaggregate-trunk&gt;java -cp build\classes;build\test-classes;c:\java\junit4\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar org.junit.runner.JUnitCore<br />JUnit version 4.0rc1</p>
+
+<p>Time: 0.016</p>
+
+<p>OK (0 tests)</p>
+
+<p>It seems that JUnitCore isn't much interested in our suite().&nbsp; Instead, it instantiates AllTests using its default public zero-argument constructor, looks for test methods on it, finds none, and stops.</p>
+
+<p>When deciding how to run a named test class, JUnitCore makes a RunnerFactory which first looks for a RunWith annotation on the test class; if present, the factory will instantiate the class named in the annotation using its two-argument (RunNotifier, Class) constructor, and the test gets run using the newly instantiated runner.&nbsp; Otherwise, if the test class is a pre-JUnit 4 test-so determined by deciding whether it is a derivative of junit.framework.TestCase-the runner factory yields an OldTestClassRunner to run the test.&nbsp; If the test class has no RunWith annotation and is not a pre-JUnit4 test class, it is run using a TestClassRunner.</p>
+
+<p>Since AllTests has no RunWith annotation and is not a derivative of TestCase, it is run using JUnit4's TestClassRunner.&nbsp; This runner tries to find methods annotated with Test, Before, After, and the like to execute.&nbsp; Since AllTests has none of those, no tests get executed.</p>
+
+<p>Maybe we can &quot;fool&quot; JUnitCore into recognizing and executing AllTests' suite()&nbsp; by modifying AllTests to extend TestCase:</p>
+
+<p>public final class AllTests extends TestCase {<br />&nbsp; &nbsp; // ...<br />}</p>
+
+<p>Here we go:</p>
+
+<p>C:\java\jaggregate-trunk&gt;java -cp build\classes;build\test-classes;c:\java\junit-4.0rc1\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar org.junit.runner.JUnitCore test.jaggregate.AllTests<br />JUnit version 4.0rc1<br />.E<br />Time: 0.015<br />There was 1 failure:<br />1) junit.framework.TestSuite$1.warning()<br />junit.framework.AssertionFailedError: No tests found in test.jaggregate.AllTests</p>
+
+<p>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.Assert.fail(Assert.java:51)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestSuite$1.runTest(TestSuite.java:93)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestCase.runBare(TestCase.java:130)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestResult$1.protect(TestResult.java:110)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestResult.runProtected(TestResult.java:128)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestResult.run(TestResult.java:113)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestCase.run(TestCase.java:120)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestSuite.runTest(TestSuite.java:228)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at junit.framework.TestSuite.run(TestSuite.java:223)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.internal.OldTestClassRunner.run(OldTestClassRunner.java:29)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.JUnitCore.run(JUnitCore.java:72)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.JUnitCore.run(JUnitCore.java:55)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.JUnitCore.runMain(JUnitCore.java:45)<br />&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; at org.junit.runner.JUnitCore.main(JUnitCore.java:24)</p>
+
+<p>FAILURES!!!<br />Tests run: 1,&nbsp; Failures: 1</p>
+
+<p>This change at least got JUnitCore to run AllTests with OldTestCaseRunner.&nbsp; It looks as though a TestSuite was constructed and executed; but it was found to have no tests, so the runner complained and stopped.&nbsp; What happened?&nbsp; It seems AllTests' suite() method wasn't invoked after all.&nbsp; Instead, when the OldTestCaseRunner was constructed, it built a TestSuite using TestSuite's one-arg (Class) constructor, which interrogates the class for the usual public void test*() methods.&nbsp; Again, AllTests has none of these.&nbsp; It expects a test runner to ask for its suite().</p>
+
+<p>Perhaps we can extend JUnit 4's notion of what constitutes a &quot;pre-JUnit 4&quot; test class: Either it is a TestCase derivative, or it has a public zero-argument suite() method whose return type is junit.framework.Test.</p>
+
+<p>...Then again, maybe we can just use org.junit.runner.extensions.AllTests.&nbsp; It looks like this is a test runner which interrogates the target class for a suite() method, and invokes it to get a set of tests to run, then runs them with an OldTestClassRunner.&nbsp; Sweet.&nbsp; I bet if we annotate test.jaggregate.AllTests like so:</p>
+
+<p>@RunWith( org.junit.runner.extensions.AllTests.class )<br />public final class AllTests {<br />&nbsp; &nbsp; // ...<br />}</p>
+
+<p>being sure to make Jaggregate now depend on JUnit 4.0's junit.jar instead of JUnit 3.8.1's, we'll see that:</p>
+
+<p>C:\java\jaggregate-trunk&gt;java -cp build\classes;build\test-classes;c:\java\junit-4.0rc1\junit\junit4.0rc1\junit.jar;lib\junit-addons.jar org.junit.runner.JUnitCore test.jaggregate.AllTests<br />JUnit version 4.0rc1<br />......................................................................................................................<br />[snip]<br />.................................................<br />Time: 0.688</p>
+
+<p>OK (3729 tests)</p>
+
+<p>We're back in the saddle again.&nbsp; In fact, I can even put back test.jaggregate.AllTests' private constructor to prevent instantiation, and no longer need to extend TestCase.&nbsp; The AllTests runner doesn't need to instantiate the suite() provider.</p>
+
+<p>Let's summarize what we've discovered so far.</p>
+
+<p>* We can run our AllTests using JUnit 4's version of junit.textui.TestRunner without modifying our tests, but needed to fix a bug to make the execution succeed.<br />* The JUnit 4 console test runner, org.junit.runner.JUnitCore, honors only those JUnit 3.x tests that are instantiable derivatives of TestCase.&nbsp; To run a class that provides a suite() without extending TestCase, annotate the suite provider class with @RunWith(org.junit.runner.extensions.AllTests.class).</p>
+
+<p>In the next installment, we'll see what happens when we migrate test classes to JUnit 4 style (needn't extend TestCase, use @Test, etc.), and try to figure out a way to collect tests like we did with JUnit 3.x.</p>
+

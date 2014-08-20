@@ -1,0 +1,37 @@
+---
+layout: post
+title: Jaggregate and Java 7 closures
+published: 1
+category:
+  - Programming
+---
+<p>The recent draft proposal to add special syntax for local and anonymous functions in Java 7 has gotten me really excited. If this stuff becomes part of the core language, my Jaggregate library will leap to support these typed functions in lieu of or alongside Jaggregate's current unary and binary functors/predicates. So instead of having to write something like:</p>
+
+<code>
+<pre>
+Set&lt;Integer&gt; singleDigits = Interval.fromTo( 0, 9 ).toSet();
+singleDigits.select( new UnaryPredicate&lt;Integer&gt;() {
+    public boolean matches( Integer target ) {
+        return target % 2 == 0;
+    }
+} ).forEachDo( new UnaryFunction&lt;Object&gt;() {
+    public Object evaluate( Object target ) {
+        System.out.println( target );
+        return this;
+    }
+} );
+</pre>
+</code>
+
+<p>you could write:</p>
+
+<code>
+<pre>
+Set&lt;Integer&gt; singleDigits = Interval.fromTo( 0, 9 ).toSet();
+singleDigits.select( (int target) : target % 2 == 0 )
+    .forEachDo( (Object target) : { System.out.println( target ); return this; } );
+</pre>
+</code>
+
+<p>Sweet, eh?</p>
+

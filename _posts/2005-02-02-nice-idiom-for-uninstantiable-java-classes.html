@@ -1,0 +1,9 @@
+---
+layout: post
+title: Nice idiom for uninstantiable Java classes
+published: 1
+category:
+  - Programming
+---
+<p>Sometimes we create Java classes that consist of static methods and constants only, usually to group related stateless utility routines, a la java.lang.Math.&nbsp; We typically prevent the client of the class from instantiating the class by making the class's zero-argument constructor private.&nbsp; While browsing the source of <a href="http://selenium.thoughtworks.com">Selenium</a>, I saw the idiom taken even further: such private constructors throw java.lang.UnsupportedOperationException always.&nbsp; Talk about code clearly communicating its intent!&nbsp; I think this is a tremendous improvement over the typical &quot;Don't call this&quot; javadoc comment: if executed, the constructor will reject the invocation, and says so with code instead of comments.</p>
+

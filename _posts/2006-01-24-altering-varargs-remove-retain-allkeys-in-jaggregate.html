@@ -1,0 +1,11 @@
+---
+layout: post
+title: Altering "varargs" (remove|retain)AllKeys in Jaggregate
+published: 1
+category:
+  - Programming
+---
+<p>
+As with the <a href="http://cleveralias.blogs.com/thought_spearmints/2006/01/altering_vararg.html">analogous <code>jaggregate.Collection</code> methods</a>, I've modified the <code>removeAllKeys( K... )</code> and <code>retainAllKeys( K... )</code> methods to have parameter list <code>( K[] )</code>, and added overloads that have parameter list <code>( K, K... )</code>, to avoid big confusion when programs hand zero args to the varargs versions of the method.  This and the previous modifications will show up in version 2.
+</p>
+

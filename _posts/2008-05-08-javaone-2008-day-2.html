@@ -1,0 +1,101 @@
+---
+layout: post
+title: JavaOne 2008, Day 2
+published: 1
+category:
+  - Programming
+---
+<p>On Day One, I picked Josh Bloch's brain for a bit about whether the BGGA closures proposal was redeemable if the gnarlier bits might be removed, leaving it basically with function types.&nbsp; It was cool to mingle with the Java &quot;rock stars&quot;, if only for a moment.</p>
+
+<p>I enjoyed Neal Gafter's Day Two talk &quot;Closures Cookbook&quot; immensely.&nbsp; He gave a very clear exposition of the BGGA proposal and the use cases propelling it.</p>
+
+<p>Right out of the gate, he started with a disclaimer: Google is open to multiple parallel investigations of closures but is not currently prepared to commit to any particular proposal.</p>
+
+<p>The cool bit is that closure literals can be used as instances of one-method interface types whose method parms and return type are compatible with those of the closure:</p>
+
+
+
+<pre><code>
+&nbsp; &nbsp; Runnable r = { =&gt; doWhatever(); }
+&nbsp; &nbsp; r.run();
+
+&nbsp; &nbsp; Callable&lt;String&gt; cs = { =&gt; &quot;result&quot;; }
+
+&nbsp; &nbsp; Comparator&lt;String&gt; reverse = { String s1, String s2 =&gt; s2.compareTo(s1); }
+
+&nbsp; &nbsp; ItemSelectable is = ...;<br />&nbsp; &nbsp; is.addItemListener( { ItemEvent ev =&gt; doSomething(ev, is); } );<br /></code></pre>
+
+<p>
+
+Apparently there are technical reasons why this couldn't be done for abstract classes with one abstract method, didn't quite get the picture...
+
+</p>
+
+<p>Also considered were aggregrate operations,&nbsp; <a href="http://jaggregate.sourceforge.net">near and dear to my heart</a>:</p>
+
+<pre><code>
+double highestGPA = Double.MIN_VALUE;
+for (Student s: students) {
+&nbsp; if ( s.graduationYear == THIS_YEAR ) {
+&nbsp; &nbsp;&nbsp; int gpa = s.getGPA();
+&nbsp; &nbsp;&nbsp; if ( highestGPA &lt; gpa )
+&nbsp; &nbsp;&nbsp; &nbsp; highestGPA = gpa;
+&nbsp; }
+}
+
+double highestGPA =
+&nbsp; &nbsp; students.filter( { Student s =&gt; s.graduationYear == THIS_YEAR } )
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;.map( { Student s =&gt; s.getGPA(); } )
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;.max();
+</code></pre>
+
+<p>I just love how the second reads -- nothing like method names to make intent clearer.</p>
+
+<p>An extended example involving an API for timing units of code:</p>
+
+<pre><code>
+interface Block&lt;R, throws X&gt; {
+&nbsp; &nbsp; R execute() throws X;
+}
+</code></pre>
+
+<pre><code>
+public &lt;R, throws X&gt; R time(String opName, Block&lt;R, X&gt; block) throws X {
+&nbsp; long startTime = System.nanoTime();
+&nbsp; boolean success = true;
+&nbsp; try {
+&nbsp; &nbsp; return block.execute();
+&nbsp; }
+&nbsp; catch (final Throwable ex) {
+&nbsp; &nbsp; success = false;
+&nbsp; &nbsp; throw ex;
+&nbsp; }
+&nbsp; finally {
+&nbsp; &nbsp; recordTiming(opName, System.nanoTime() - startTime, success);
+&nbsp; }
+}
+
+int f() {
+&nbsp; time( &quot;opName&quot;, { =&gt; someStatements } );
+&nbsp; time( &quot;opName&quot;, { =&gt; return computeResult; } )
+}
+</code></pre>
+
+<p>Yowza.&nbsp; Nice how it genericizes over whatever exceptions the block may raise (including none), and whatever the block might return (including nothing).&nbsp; Note the use of &quot;safe re-throw&quot; by marking a catch parameter final (proposed for JDK7).</p>
+
+<p>Alex Buckley and Stanley Ho gave a nice summary of the first-class language and tooling support for modularity in Java (JSR 277).&nbsp; Seems a JAM module would be able to leverage OSGi bundles and repositories?&nbsp; Nice.</p>
+
+<p>The Java Persistence API 2.0 talk was packed.&nbsp; Ridiculously packed.&nbsp; Fire marshal, anyone?&nbsp; People continued to stream in well into the presentation.&nbsp; One guy ended up accidentally kicking separating my MacBook power supply from the pluggable portion of it.&nbsp; Not so much as a &quot;sorry, my bad&quot; -- never looked back.&nbsp; I understand there's a certain amount of Asperger-style intense focus at a geeky conference, but come on.&nbsp; Sorry if I seemed a bit peevish, but several hot buttons were hit in this one: overcrowded room, disregard for personal space, cell phones ringing after several admonishments to silence them, relatively shrill speaker a bit trigger-happy on the slide flipper ... I guess my bitching about it was way more annoying to the guy in front of me, as when I uttered the line, &quot;As a courtesy to others, please silence your cell phones&quot;, he shot back with the timeless classic, &quot;Why don't you silence yourself, dude?&quot;&nbsp; Cue the slow clap.</p>
+
+<p>Anyway, I didn't get that much out of the JPA talk.&nbsp; I'm not doing much RDBMS work these days, but at least I have a sense of where to look for JPA info.</p>
+
+<p>I bailed out of the talk &quot;Unit Testing DB Operations with DBUnit&quot; a shade early to catch a power nap -- I had no idea how exhausted I'd be after 1.5 days at the conference.&nbsp; That said, I scheduled a number of sessions and BOFs -- perhaps next time I'll pace myself a bit better.&nbsp; Besides, I've used DBUnit before, and it it quite nice -- not much new ground covered for me.</p>
+
+<p>&quot;Boldly Go Where the Java Programming Language Has Never Gone Before&quot; -- Geert Bevin's talk's premise was that &quot;You don't have to master new languages, tools, or libraries to deliver applications that go much further than what the standard Java platform provides.&quot;&nbsp; He gave compelling demonstrations of Terracotta, an OSS clustering solution for the Java platform; RIFE, a component-based web framework featuring continuations; GWT; and Google Android.&nbsp; Very nice stuff!</p>
+
+<p>&quot;Building RESTful Clients with JavaScript, Ruby, and JavaFX&quot; -- not much here you couldn't get from an introductory article on REST.</p>
+
+<p>Ola Bini of ThoughtWorks gave a talk about TW's use of JRuby.&nbsp; As an ex-ThoughtWorker I was eager to hear about what TW's been up to in the Ruby world -- clearly, quite a lot.&nbsp; I left TW just as it was beginning to pursue and land Ruby/Rails work.&nbsp; Right now, 40% of its US revenue comes form Ruby/Rails work.&nbsp; Surprising to learn that test suites run more slowly often in JRuby than in MRI -- less opportunity for JIT leverage, it seems.&nbsp; Often they run test suites in MRI pre-commit, then with JRuby in CI build.</p>
+
+<p>&quot;Cooking Your Own Groovy Builder: A Step Forward into Domain-Specific Languages&quot; -- nice exposition of the Builder support for languages that describe hierarchical structures such as XML documents and Swing widgetry.</p>
+
